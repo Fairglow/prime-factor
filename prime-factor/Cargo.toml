@@ -1,0 +1,23 @@
+[package]
+name = "prime-factor"
+version = "0.4.0"
+authors = ["Stefan Lindblad <stefan.lindblad@linux.com>"]
+edition = "2018"
+
+[lib]
+name = "primefactor"
+path = "src/lib.rs"
+
+[[bin]]
+name = "prime-factor"
+path = "src/main.rs"
+
+[dependencies]
+clap = "2.33.3"
+log = "0.4.13"
+stderrlog = "0.5.1"
+genawaiter = "0.99.1"
+rayon = "1.5.0"
+
+[dev-dependencies]
+rand = "0.8.3"
