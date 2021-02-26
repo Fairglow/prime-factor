@@ -41,10 +41,7 @@ fn test_is_prime() {
         let facts = PrimeFactors::from(num);
         let prime = facts.is_prime();
         assert_eq!(is_prime(num), prime, "is num {} prime?", num);
-        let sum: u128 = facts.to_vec().iter()
-            .map(|fc| fc.prime.pow(fc.exponent))
-            .product();
-        assert_eq!(num, sum);
+        assert_eq!(num, facts.value());
     }
 }
 
@@ -60,10 +57,7 @@ fn test_some_factors() {
             assert_eq!(fe.prime, num);
             assert_eq!(fe.exponent, 1);
         } else {
-            let sum: u128 = facts.to_vec().iter()
-                .map(|fc| fc.prime.pow(fc.exponent))
-                .product();
-            assert_eq!(num, sum);
+            assert_eq!(num, facts.value());
         }
     }
 }
@@ -76,4 +70,13 @@ fn test_a_few_gcd() {
     assert_eq!(u128_gcd(27*64*121, 9*32*49), PrimeFactors::from(9*32));
     let no_gcd = u128_gcd(3*7*13, 2*5*11);
     assert!(no_gcd.is_empty());
+}
+
+#[test]
+fn test_a_few_lcd() {
+    assert_eq!(u128_lcd(2*3*5*7, 2*5*11), (3*7, 11));
+    assert_eq!(u128_lcd(3*4*5, 3*4*7), (5, 7));
+    assert_eq!(u128_lcd(9*4*11, 3*8*13), (3*11, 2*13));
+    assert_eq!(u128_lcd(27*64*121, 9*32*49), (3*2*121, 49));
+    assert_eq!(u128_lcd(3*7*13, 2*5*11), (3*7*13, 2*5*11));
 }

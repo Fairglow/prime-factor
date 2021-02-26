@@ -53,6 +53,9 @@ impl PrimeFactors {
     fn add(&mut self, prime: u128, exponent: u32) {
         self.factors.push(PrimeFactor { prime, exponent })
     }
+    pub fn value(&self) -> u128 {
+        self.factors.iter().map(|f| f.prime.pow(f.exponent)).product()
+    }
     pub fn len(&self) -> usize {
         self.factors.len()
     }
@@ -155,6 +158,12 @@ pub fn u128_gcd(this: u128, that: u128) -> PrimeFactors {
     let pf_this = PrimeFactors::from(this);
     let pf_that = PrimeFactors::from(that);
     pf_this.gcd(&pf_that)
+}
+
+pub fn u128_lcd(this: u128, that: u128) -> (u128, u128) {
+    let gcd = u128_gcd(this, that);
+    let val = gcd.value();
+    (this/val, that/val)
 }
 
 #[cfg(test)]
