@@ -1,3 +1,4 @@
+//! Module for factorizing integers
 use std::cmp::{min, Ordering};
 use std::convert::From;
 use std::fmt;
@@ -25,7 +26,7 @@ async fn maybe_prime_gen() {
     }
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct PrimeFactor {
     pub prime: u128,
     pub exponent: u32,
@@ -68,13 +69,15 @@ impl PrimeFactors {
     pub fn is_prime(&self) -> bool {
         self.count_factors() == 1
     }
+    pub fn iter(&self) -> PrimeFactorsIter {
+        PrimeFactorsIter { vec: &self.factors, ndx: 0 }
+    }
     pub fn to_vec(&self) -> &Vec<PrimeFactor> {
         &self.factors
     }
     pub fn gcd(&self, other: &PrimeFactors) -> PrimeFactors {
-        let cnt = min(self.factors.len(), other.factors.len());
         let mut pf = PrimeFactors::new();
-        if cnt == 0 { return pf; }
+        if self.is_empty() || other.is_empty() { return pf; }
         let mut s_it = self.factors.iter();
         let mut o_it = other.factors.iter();
         let mut s = s_it.next().unwrap();
@@ -100,6 +103,7 @@ impl PrimeFactors {
 impl From<u128> for PrimeFactors {
     fn from(n: u128) -> Self {
         let mut pf = PrimeFactors::new();
+        if n < 2 { return pf; }
         // A factor of n must have a value less than or equal to sqrt(n)
         let mut maxf = u128_sqrt(n) + 1;
         let_gen_using!(mpgen, maybe_prime_gen);
@@ -139,6 +143,22 @@ impl fmt::Display for PrimeFactors {
     }
 }
 
+pub struct PrimeFactorsIter<'a> {
+    vec: &'a Vec<PrimeFactor>,
+    ndx: usize,
+}
+
+impl<'a> Iterator for PrimeFactorsIter<'a> {
+    type Item = PrimeFactor;
+
+    fn next(&mut self) -> Option<PrimeFactor> {
+        if self.ndx >= self.vec.len() { return None; }
+        let pf = self.vec[self.ndx];
+        self.ndx += 1;
+        Some(pf)
+    }
+}
+
 /* Integer square root calculation
  * Based on example implementation in C at:
  * https://en.wikipedia.org/wiki/Integer_square_root
@@ -154,16 +174,18 @@ pub fn u128_sqrt(s: u128) -> u128 {
     g
 }
 
+/// Greatest common divisor
 pub fn u128_gcd(this: u128, that: u128) -> PrimeFactors {
     let pf_this = PrimeFactors::from(this);
     let pf_that = PrimeFactors::from(that);
     pf_this.gcd(&pf_that)
 }
 
-pub fn u128_lcd(this: u128, that: u128) -> (u128, u128) {
-    let gcd = u128_gcd(this, that);
-    let val = gcd.value();
-    (this/val, that/val)
+/// Least common multiple
+pub fn u128_lcm(this: u128, that: u128) -> u128 {
+    if this == 0 && that == 0 { return 0; }
+    let gcd = u128_gcd(this, that).value();
+    this * that / gcd
 }
 
 #[cfg(test)]

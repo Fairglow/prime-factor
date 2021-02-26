@@ -22,6 +22,7 @@ fn is_prime(n: u128) -> bool {
             accum += 2;
         }
     });
+    if n < 2 { return false; }
     // A factor of n must have a value less than or equal to sqrt(n)
     let maxf = u128_sqrt(n) + 1;
     for p in mpgen.into_iter() {
@@ -37,7 +38,7 @@ fn is_prime(n: u128) -> bool {
     
 #[test]
 fn test_is_prime() {
-    for num in 1..1000 {
+    for num in 2..=1000 {
         let facts = PrimeFactors::from(num);
         let prime = facts.is_prime();
         assert_eq!(is_prime(num), prime, "is num {} prime?", num);
@@ -49,7 +50,7 @@ fn test_is_prime() {
 fn test_some_factors() {
     let mut rnd = rand::thread_rng();
     for _ in 0..1000 {
-        let num = rnd.gen_range(1..u32::MAX as u128);
+        let num = rnd.gen_range(2..u32::MAX as u128);
         let facts = PrimeFactors::from(num);
         if facts.is_prime() {
             assert_eq!(is_prime(num), true);
@@ -70,13 +71,21 @@ fn test_a_few_gcd() {
     assert_eq!(u128_gcd(27*64*121, 9*32*49), PrimeFactors::from(9*32));
     let no_gcd = u128_gcd(3*7*13, 2*5*11);
     assert!(no_gcd.is_empty());
+    assert_eq!(u128_gcd(1, 1), PrimeFactors::from(1));
+    assert_eq!(u128_gcd(1, 0), PrimeFactors::from(0));
+    assert_eq!(u128_gcd(0, 1), PrimeFactors::from(0));
+    assert_eq!(u128_gcd(0, 0), PrimeFactors::from(0));
 }
 
 #[test]
-fn test_a_few_lcd() {
-    assert_eq!(u128_lcd(2*3*5*7, 2*5*11), (3*7, 11));
-    assert_eq!(u128_lcd(3*4*5, 3*4*7), (5, 7));
-    assert_eq!(u128_lcd(9*4*11, 3*8*13), (3*11, 2*13));
-    assert_eq!(u128_lcd(27*64*121, 9*32*49), (3*2*121, 49));
-    assert_eq!(u128_lcd(3*7*13, 2*5*11), (3*7*13, 2*5*11));
+fn test_a_few_lcm() {
+    assert_eq!(u128_lcm(2*3*5*7, 2*5*11), 2*3*5*7*11);
+    assert_eq!(u128_lcm(3*4*5, 3*4*7), 3*4*5*7);
+    assert_eq!(u128_lcm(9*4*11, 3*8*13), 8*9*11*13);
+    assert_eq!(u128_lcm(27*64*121, 9*32*49), 27*64*49*121);
+    assert_eq!(u128_lcm(3*7*13, 2*5*11), 2*3*5*7*11*13);
+    assert_eq!(u128_lcm(1, 1), 1);
+    assert_eq!(u128_lcm(0, 1), 0);
+    assert_eq!(u128_lcm(1, 0), 0);
+    assert_eq!(u128_lcm(0, 0), 0);
 }
