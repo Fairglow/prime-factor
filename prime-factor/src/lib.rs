@@ -5,6 +5,7 @@ use std::fmt;
 use genawaiter::yield_;
 use genawaiter::stack::{let_gen_using, producer_fn};
 
+/// A generator for possibly prime number
 #[producer_fn(u128)]
 async fn maybe_prime_gen() {
     yield_!(2);
@@ -143,6 +144,7 @@ impl fmt::Display for PrimeFactors {
     }
 }
 
+/// PrimeFactor interator
 pub struct PrimeFactorsIter<'a> {
     vec: &'a Vec<PrimeFactor>,
     ndx: usize,
@@ -159,10 +161,21 @@ impl<'a> Iterator for PrimeFactorsIter<'a> {
     }
 }
 
-/* Integer square root calculation
- * Based on example implementation in C at:
- * https://en.wikipedia.org/wiki/Integer_square_root
- */
+impl<'a> IntoIterator for &'a PrimeFactors {
+    type Item = PrimeFactor;
+    type IntoIter = PrimeFactorsIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        PrimeFactorsIter {
+            vec: &self.factors,
+            ndx: 0,
+        }
+    }
+}
+
+/// Integer square root calculation
+/// Based on example implementation in C at:
+/// https://en.wikipedia.org/wiki/Integer_square_root
 pub fn u128_sqrt(s: u128) -> u128 {
     let mut g = s >> 1; // Initial guess
     if g == 0 { return s; } // sanity check
@@ -174,17 +187,27 @@ pub fn u128_sqrt(s: u128) -> u128 {
     g
 }
 
-/// Greatest common divisor
-pub fn u128_gcd(this: u128, that: u128) -> PrimeFactors {
+/// Calculate the Greatest common divisor (GCD) between 2 integers
+pub fn primefactor_gcd(this: u128, that: u128) -> PrimeFactors {
     let pf_this = PrimeFactors::from(this);
     let pf_that = PrimeFactors::from(that);
     pf_this.gcd(&pf_that)
 }
 
-/// Least common multiple
+/// Calculate the Greatest common divisor (GCD) between 2 integers
+pub fn u128_gcd(this: u128, that: u128) -> u128 {
+    let gcd = primefactor_gcd(this, that);
+    if gcd.is_empty() {
+        1
+    } else {
+        gcd.value()
+    }
+}
+
+/// Calculate the Least common multiple (LCM) for 2 integers
 pub fn u128_lcm(this: u128, that: u128) -> u128 {
     if this == 0 && that == 0 { return 0; }
-    let gcd = u128_gcd(this, that).value();
+    let gcd = u128_gcd(this, that);
     this * that / gcd
 }
 
