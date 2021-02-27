@@ -28,35 +28,41 @@ async fn maybe_prime_gen() {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub struct PrimeFactor {
-    pub prime: u128,
+pub struct IntFactor {
+    pub integer: u128,
     pub exponent: u32,
 }
 
-impl fmt::Display for PrimeFactor {
+impl IntFactor {
+    pub fn to_vec(&self) -> Vec<u128> {
+        vec![self.integer; self.exponent as usize]
+    }
+}
+
+impl fmt::Display for IntFactor {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.exponent > 1 {
-            write!(f, "{}^{}", self.prime, self.exponent)
+            write!(f, "{}^{}", self.integer, self.exponent)
         } else {
-            write!(f, "{}", self.prime)
+            write!(f, "{}", self.integer)
         }
     }
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct PrimeFactors {
-    factors: Vec<PrimeFactor>
+    factors: Vec<IntFactor>
 }
 
 impl PrimeFactors {
     fn new() -> Self {
         PrimeFactors { factors: Vec::new() }
     }
-    fn add(&mut self, prime: u128, exponent: u32) {
-        self.factors.push(PrimeFactor { prime, exponent })
+    fn add(&mut self, integer: u128, exponent: u32) {
+        self.factors.push(IntFactor { integer, exponent })
     }
     pub fn value(&self) -> u128 {
-        self.factors.iter().map(|f| f.prime.pow(f.exponent)).product()
+        self.factors.iter().map(|f| f.integer.pow(f.exponent)).product()
     }
     pub fn len(&self) -> usize {
         self.factors.len()
@@ -73,8 +79,13 @@ impl PrimeFactors {
     pub fn iter(&self) -> PrimeFactorsIter {
         PrimeFactorsIter { vec: &self.factors, ndx: 0 }
     }
-    pub fn to_vec(&self) -> &Vec<PrimeFactor> {
+    pub fn to_factor_vec(&self) -> &Vec<IntFactor> {
         &self.factors
+    }
+    pub fn to_vec(&self) -> Vec<u128> {
+        let mut ret = Vec::new();
+        self.factors.iter().for_each(|f| ret.extend(f.to_vec()));
+        ret
     }
     pub fn gcd(&self, other: &PrimeFactors) -> PrimeFactors {
         let mut pf = PrimeFactors::new();
@@ -84,9 +95,9 @@ impl PrimeFactors {
         let mut s = s_it.next().unwrap();
         let mut o = o_it.next().unwrap();
         loop {
-            let prime_cmp = s.prime.cmp(&o.prime);
+            let prime_cmp = s.integer.cmp(&o.integer);
             if prime_cmp == Ordering::Equal {
-                pf.add(s.prime, min(o.exponent, s.exponent));
+                pf.add(s.integer, min(o.exponent, s.exponent));
             }
             match prime_cmp {
                 Ordering::Less | Ordering::Equal => {
@@ -144,16 +155,16 @@ impl fmt::Display for PrimeFactors {
     }
 }
 
-/// PrimeFactor interator
+/// IntFactor interator
 pub struct PrimeFactorsIter<'a> {
-    vec: &'a Vec<PrimeFactor>,
+    vec: &'a Vec<IntFactor>,
     ndx: usize,
 }
 
 impl<'a> Iterator for PrimeFactorsIter<'a> {
-    type Item = PrimeFactor;
+    type Item = IntFactor;
 
-    fn next(&mut self) -> Option<PrimeFactor> {
+    fn next(&mut self) -> Option<IntFactor> {
         if self.ndx >= self.vec.len() { return None; }
         let pf = self.vec[self.ndx];
         self.ndx += 1;
@@ -162,7 +173,7 @@ impl<'a> Iterator for PrimeFactorsIter<'a> {
 }
 
 impl<'a> IntoIterator for &'a PrimeFactors {
-    type Item = PrimeFactor;
+    type Item = IntFactor;
     type IntoIter = PrimeFactorsIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {

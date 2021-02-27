@@ -2,47 +2,15 @@
 use primefactor::*;
 use rand::Rng;
 use rayon::prelude::*;
-use genawaiter::{yield_, stack::let_gen};
-
-fn is_prime(n: u128) -> bool {
-    let_gen!(mpgen, {
-        yield_!(2);
-        yield_!(3);
-        yield_!(5);
-        yield_!(7);
-        // All remaining prime numbers must end in either of 1, 3, 7 or 9
-        let mut accum: u128 = 11;
-        loop {
-            yield_!(accum); // ending in 1
-            accum += 2;
-            yield_!(accum); // ending in 3
-            accum += 4;
-            yield_!(accum); // ending in 7
-            accum += 2;
-            yield_!(accum); // ending in 9
-            accum += 2;
-        }
-    });
-    if n < 2 { return false; }
-    // A factor of n must have a value less than or equal to sqrt(n)
-    let maxf = u128_sqrt(n) + 1;
-    for p in mpgen.into_iter() {
-        if p >= maxf {
-            break;
-        }
-        if n % p == 0 {
-            return false;
-        }
-    }
-    return true;
-}
+use reikna;
     
 #[test]
 fn test_is_prime() {
     for num in 2..=1000 {
         let facts = PrimeFactors::from(num);
         let prime = facts.is_prime();
-        assert_eq!(is_prime(num), prime, "is num {} prime?", num);
+        assert_eq!(reikna::prime::is_prime(num as u64), prime,
+                   "is num {} prime?", num);
         assert_eq!(num, facts.value());
     }
 }
@@ -53,11 +21,11 @@ fn test_some_factors() {
     for _ in 0..1000 {
         let num = rnd.gen_range(2..u32::MAX as u128);
         let facts = PrimeFactors::from(num);
+        assert_eq!(reikna::prime::is_prime(num as u64), facts.is_prime());
         if facts.is_prime() {
-            assert_eq!(is_prime(num), true);
-            let fe = &facts.to_vec()[0];
-            assert_eq!(fe.prime, num);
-            assert_eq!(fe.exponent, 1);
+            let fe = &facts.to_vec();
+            assert_eq!(fe.len(), 1);
+            assert_eq!(fe[0], num);
         } else {
             assert_eq!(num, facts.value());
         }
@@ -125,5 +93,20 @@ fn test_some_gcd_lcm() {
         // Test associative laws
         assert_eq!(u128_gcd(a, u128_gcd(b, c)), u128_gcd(u128_gcd(a, b), c));
         assert_eq!(u128_lcm(a, u128_lcm(b, c)), u128_lcm(u128_lcm(a, b), c));
-    });
+    })
+}
+
+#[test]
+fn test_with_reikna_gcd_lcm() {
+    (0..100).into_par_iter().for_each(|_| {
+        let mut rnd = rand::thread_rng();
+        let a = rnd.gen_range(2..u32::MAX as u64);
+        let b = rnd.gen_range(2..u32::MAX as u64);
+        let gcd_r = reikna::factor::gcd(a, b);
+        let gcd_t = u128_gcd(a as u128, b as u128) as u64;
+        assert_eq!(gcd_r, gcd_t);
+        let lcm_r = reikna::factor::lcm(a, b);
+        let lcm_t = u128_lcm(a as u128, b as u128) as u64;
+        assert_eq!(lcm_r, lcm_t);
+    })
 }
