@@ -1,8 +1,12 @@
 [package]
 name = "prime-factor"
+description = "A number factorizer written in Rust"
 version = "0.4.0"
 authors = ["Stefan Lindblad <stefan.lindblad@linux.com>"]
+license = "LGPL-2.1-or-later"
 edition = "2018"
+repository = "https://github.com/Fairglow/prime-factor.git"
+readme = "README.md"
 
 [lib]
 name = "primefactor"
