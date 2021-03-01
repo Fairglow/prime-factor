@@ -7,11 +7,9 @@ use reikna;
 #[test]
 fn test_is_prime() {
     for num in 2..=1000 {
-        let facts = PrimeFactors::from(num);
-        let prime = facts.is_prime();
+        let prime = u128_is_prime(num);
         assert_eq!(reikna::prime::is_prime(num as u64), prime,
                    "is num {} prime?", num);
-        assert_eq!(num, facts.value());
     }
 }
 

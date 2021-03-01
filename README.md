@@ -26,7 +26,7 @@ One of the design goals for this code is to minimize the memory overhead during 
 
 I know these have not been stabilized yet in Rust. In the code I will use genawaiter which is based on the async handling in Rust. Using generators allows me to have minimal state while running. This is a slight optimization over an iterator, where you'd have to do a bit more work to achieve the same output, because the state must be saved and loaded between calls.
 
-The code uses a generator to find potential prime candidates. It must guarantee that all primes a re generated, but it is ok if it also produces some false positives. The cost is one loop with one modulo calculation. Not that any non-prime value from the generator will have all its factors appear among the already generated numbers. Therefore they can never appear in the final output.
+The code uses a generator to find potential prime candidates. It must guarantee that all primes are generated, but it is ok if it also produces some false positives. The cost is one loop with one modulo calculation. Note that any non-prime value from the generator will have all its factors appear among the already generated numbers. Therefore they can never appear in the final output.
 
 We want this generator to be fast and give a reasonably good guess for prime numbers. In the first million of numbers it has a hit-rate of about 26.7%, which is pretty good considering its speed. Consider that a false positive is not that expensive, but a false negative is a fatal flaw. I fully expect the hit-rate to drop for even higher numbers.
 

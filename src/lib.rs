@@ -198,6 +198,23 @@ pub fn u128_sqrt(s: u128) -> u128 {
     g
 }
 
+/// Test if the value is a prime number, or not
+pub fn u128_is_prime(n: u128) -> bool {
+    if n < 2 { return false; }
+    // A factor of n must have a value less than or equal to sqrt(n)
+    let maxf = u128_sqrt(n) + 1;
+    let_gen_using!(mpgen, maybe_prime_gen);
+    for f in mpgen.into_iter() {
+        if f >= maxf {
+            break;
+        }
+        if n % f == 0 {
+            return false;
+        }
+    }
+    true
+}
+
 /// Calculate the Greatest common divisor (GCD) between 2 integers
 pub fn primefactor_gcd(this: u128, that: u128) -> PrimeFactors {
     let pf_this = PrimeFactors::from(this);
@@ -230,7 +247,7 @@ mod tests {
     use genawaiter::stack::let_gen_using;
     
     #[test]
-    fn test_maybe_prime_generator() {
+    fn test_early_maybe_prime_numbers() {
         let testvec = vec![
             2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 49, 53, 59,
             61, 67, 71, 73, 77, 79, 83, 89, 91, 97, 101, 103, 107, 109, 113
@@ -241,6 +258,26 @@ mod tests {
             let p = mp.next().unwrap();
             assert_eq!(testvec[i], p);
         }
+    }
+
+    #[test]
+    fn test_maybe_prime_quality() {
+        let mut primes: u128 = 0;
+        let mut others: u128 = 0;
+        let_gen_using!(mpgen, maybe_prime_gen);
+        let mut mp = mpgen.into_iter();
+        for _ in 0..1000000 {
+            let p = mp.next().unwrap();
+            if u128_is_prime(p) {
+                primes += 1;
+            } else {
+                others += 1;
+            }
+        }
+        let percent = primes as f64 / (primes + others) as f64 * 100.0;
+        println!("Maybe prime generated {}/{} ({:.3}%) primes",
+                 primes, primes+others, percent);
+        assert!(percent > 25.0);
     }
 
     #[test]
