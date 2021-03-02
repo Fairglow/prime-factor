@@ -184,7 +184,7 @@ impl<'a> IntoIterator for &'a PrimeFactors {
     }
 }
 
-/// Integer square root calculation
+/// Unsigned 128-bit integer square root calculation.
 /// Based on example implementation in C at:
 /// https://en.wikipedia.org/wiki/Integer_square_root
 pub fn u128_sqrt(s: u128) -> u128 {
@@ -215,21 +215,25 @@ pub fn u128_is_prime(n: u128) -> bool {
     true
 }
 
-/// Calculate the Greatest common divisor (GCD) between 2 integers
+/// Calculate the Greatest common divisor (GCD) between 2 unsigned integers
 pub fn primefactor_gcd(this: u128, that: u128) -> PrimeFactors {
     let pf_this = PrimeFactors::from(this);
     let pf_that = PrimeFactors::from(that);
     pf_this.gcd(&pf_that)
 }
 
-/// Calculate the Greatest common divisor (GCD) between 2 integers
+/// Calculate the Greatest common divisor (GCD) between 2 unsigned integers.
+/// Based on Euclid's algorithm pseudo code at:
+/// https://en.wikipedia.org/wiki/Euclidean_algorithm
 pub fn u128_gcd(this: u128, that: u128) -> u128 {
-    let gcd = primefactor_gcd(this, that);
-    if gcd.is_empty() {
-        1
-    } else {
-        gcd.value()
+    let mut a = this;
+    let mut b = that;
+    while b > 0 {
+        let c = b;
+        b = a % b;
+        a = c;
     }
+    a
 }
 
 /// Calculate the Least common multiple (LCM) for 2 integers

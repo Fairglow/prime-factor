@@ -42,10 +42,30 @@ fn test_a_few_gcd() {
     assert!(primefactor_gcd(1, 0).is_empty());
     assert!(primefactor_gcd(0, 1).is_empty());
     assert!(primefactor_gcd(0, 0).is_empty());
+    assert_eq!(u128_gcd(2*3*5*7, 2*5*11), 2*5);
+    assert_eq!(u128_gcd(3*4*5, 3*4*7), 3*4);
+    assert_eq!(u128_gcd(9*4*11, 3*8*13), 3*4);
+    assert_eq!(u128_gcd(27*64*121, 9*32*49), 9*32);
     assert_eq!(u128_gcd(1, 1), 1);
     assert_eq!(u128_gcd(1, 0), 1);
     assert_eq!(u128_gcd(0, 1), 1);
-    assert_eq!(u128_gcd(0, 0), 1);
+    assert_eq!(u128_gcd(0, 0), 0);
+}
+
+#[test]
+fn test_compare_some_gcd() {
+    (0..100).into_par_iter().for_each(|_| {
+        let mut rnd = rand::thread_rng();
+        let a = rnd.gen_range(2..u32::MAX as u128);
+        let b = rnd.gen_range(2..u32::MAX as u128);
+        let pf_gcd = primefactor_gcd(a, b);
+        let ea_gcd = u128_gcd(a, b);
+        if pf_gcd.is_empty() {
+            assert_eq!(ea_gcd, 1);
+        } else {
+            assert_eq!(ea_gcd, pf_gcd.value());
+        }
+    })
 }
 
 #[test]
@@ -95,7 +115,7 @@ fn test_some_gcd_lcm() {
 }
 
 #[test]
-fn test_with_reikna_gcd_lcm() {
+fn test_compare_reikna_gcd_lcm() {
     (0..100).into_par_iter().for_each(|_| {
         let mut rnd = rand::thread_rng();
         let a = rnd.gen_range(2..u32::MAX as u64);

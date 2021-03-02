@@ -1,5 +1,9 @@
 # Prime Factor
 
+The library will calculate all the prime number factors of any 128-bit unsigned integer. These are all the smallest values that when multiplied with each other produces that number. You can use the included application to play around with it.
+
+## Prime Numbers
+
 "Is that true that all the prime numbers are of the form 6m±1?" -- [Math StackExchange](https://math.stackexchange.com/questions/41623/is-that-true-that-all-the-prime-numbers-are-of-the-form-6m-pm-1)
 
 "This is true of all prime numbers except for 2 and 3. The reason is that numbers with remainders 0, 2 and 4 modulo 6 are divisible by 2, and numbers with remainders 0 and 3 modulo 6 are divisible by 3, so other than 2 and 3 themselves, all prime numbers must have remainder 1 or 5 modulo 6." -- [joriki](https://math.stackexchange.com/users/6622/joriki)
@@ -34,6 +38,8 @@ If you know of any better prime candidate generator, please let me know!
 
 ## Performance
 
-Typically, any u32 value can be factorized within a millisecond on a reasonably modern system. On my own machine, which is a few years old but was quite good at the time, I average about 585 nanoseconds for values around 1 Gi.
+Typically, any 32-bit value can be factorized within a millisecond on a reasonably modern system. On my own machine, which is a few years old but was quite good at the time, I average about 600 nanoseconds for values around 1 Gi.
 
-64-bit values greater than 32-bit, are typically factorized between 0.5 to 2.5 seconds in my tests on my machine.
+64-bit values greater than 32-bit, are typically factorized between 0.4 to 2.5 seconds in the benchmark results on my machine.
+
+The above numbers are taken from the included benchmark test, which you can run with the command: `cargo bench`.
