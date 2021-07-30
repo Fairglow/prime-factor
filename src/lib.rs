@@ -101,10 +101,10 @@ impl PrimeFactors {
             }
             match prime_cmp {
                 Ordering::Less | Ordering::Equal => {
-                    if let Some(n) = s_it.next() { s = &n; } else { break; }
+                    if let Some(n) = s_it.next() { s = n; } else { break; }
                 },
                 Ordering::Greater => {
-                    if let Some(n) = o_it.next() { o = &n; } else { break; }
+                    if let Some(n) = o_it.next() { o = n; } else { break; }
                 },
             }
         }
