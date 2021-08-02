@@ -40,6 +40,6 @@ If you know of any better prime candidate generator, please let me know!
 
 Typically, any 32-bit value can be factorized within a millisecond on a reasonably modern system. On my own machine, which is a few years old but was quite good at the time, I average about 600 nanoseconds for values around 1 Gi.
 
-64-bit values greater than 32-bit, are typically factorized between 0.4 to 2.5 seconds in the benchmark results on my machine.
+64-bit values greater than 32-bit, are typically factorized between 0.4 to 2.5 seconds in the benchmark results on my machine, which also factorizes the worst case 32-bit prime number in about 250 ms and the worst case 64-bit prime number in about 20.5 seconds.
 
-The above numbers are taken from the included benchmark test, which you can run with the command: `cargo bench`.
+The above numbers are taken from the included benchmark test, which you can run with the command: `cargo bench`. Note that it will take a few minutes to run the full suite (about 15 minutes on my machine).
