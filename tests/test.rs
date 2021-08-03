@@ -128,3 +128,32 @@ fn test_compare_reikna_gcd_lcm() {
         assert_eq!(lcm_r, lcm_t);
     })
 }
+
+#[test]
+fn find_highest_32bit_prime() {
+    let mut found: u128 = 0;
+    (0..5).into_iter().for_each(|n| {
+        let num: u128 = (u32::MAX - n) as u128;
+        if u128_is_prime(num) {
+            println!("#{}: {} is a prime number", n, num);
+            found = num;
+        }
+    });
+    assert_eq!(found, 4294967291);
+}
+
+
+#[test]
+fn find_highest_64bit_prime() {
+    (0..60).into_par_iter().for_each(|n| {
+        let num: u128 = (u64::MAX - n) as u128;
+        match n {
+            58 => {
+                assert_eq!(num, 18446744073709551557);
+                assert_eq!(u128_is_prime(num), true);
+                println!("#{}: {} is a prime number", n, num);
+            },
+            _ => assert_eq!(u128_is_prime(num), false),
+        }
+    });
+}
