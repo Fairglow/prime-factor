@@ -195,6 +195,13 @@ pub fn u128_sqrt(s: u128) -> u128 {
 /// Test if the value is a prime number, or not
 pub fn u128_is_prime(n: u128) -> bool {
     if n < 2 { return false; }
+    if n > 30 {
+        // check spoke in the prime wheel (base 30)
+        match n % 30 {
+            1|7|11|13|17|19|23|29 => (), // may be prime
+            _ => return false, // cannot be prime
+        }
+    }
     // A factor of n must have a value less than or equal to sqrt(n)
     let maxf = u128_sqrt(n) + 1;
     let_gen_using!(mpgen, prime_wheel_30);
