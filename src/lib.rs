@@ -5,25 +5,19 @@ use std::fmt;
 use genawaiter::yield_;
 use genawaiter::stack::{let_gen_using, producer_fn};
 
-/// A generator for possibly prime number
+/// Wheel factorization algorithm with base {2, 3, 5}
+/// https://en.wikipedia.org/wiki/Wheel_factorization
 #[producer_fn(u128)]
-async fn maybe_prime_gen() {
+async fn prime_wheel_30() {
     yield_!(2);
     yield_!(3);
-    yield_!(5); // must not skip the initial 5
-    let mut accum = 7u128;
+    yield_!(5);
+    let mut base = 0u128;
     loop {
-        /* Numbers ending in 5's occur with a periodicity of 10,
-         * at positions 6 and 9 when starting from 7, forming the
-         * end-digit pattern: 7, 1, 3, 7, 9, 3, 5, 9, 1, 5, ... */
-        for i in 0..10 {
-            match i {
-                6|9 => (), // skip numbers ending in 5
-                _ => yield_!(accum),
-            }
-            /* All primes except 2 and 3 are congruent modulo 6 to one of 1 or 5. */
-            accum += 2 * (1 - (i&1)) + 2; // alternate between adding 2 and 4
+        for n in [7, 11, 13, 17, 19, 23, 29, 31] {
+            yield_!(base + n);
         }
+        base += 30;
     }
 }
 
@@ -118,7 +112,7 @@ impl From<u128> for PrimeFactors {
         if n < 2 { return pf; }
         // A factor of n must have a value less than or equal to sqrt(n)
         let mut maxf = u128_sqrt(n) + 1;
-        let_gen_using!(mpgen, maybe_prime_gen);
+        let_gen_using!(mpgen, prime_wheel_30);
         let mut x = n;
         for f in mpgen.into_iter() {
             if f >= maxf {
@@ -203,7 +197,7 @@ pub fn u128_is_prime(n: u128) -> bool {
     if n < 2 { return false; }
     // A factor of n must have a value less than or equal to sqrt(n)
     let maxf = u128_sqrt(n) + 1;
-    let_gen_using!(mpgen, maybe_prime_gen);
+    let_gen_using!(mpgen, prime_wheel_30);
     for f in mpgen.into_iter() {
         if f >= maxf {
             break;
@@ -251,12 +245,12 @@ mod tests {
     use genawaiter::stack::let_gen_using;
     
     #[test]
-    fn test_early_maybe_prime_numbers() {
+    fn test_early_prime_wheel_numbers() {
         let testvec = vec![
             2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 49, 53, 59,
             61, 67, 71, 73, 77, 79, 83, 89, 91, 97, 101, 103, 107, 109, 113
         ];
-        let_gen_using!(mpgen, maybe_prime_gen);
+        let_gen_using!(mpgen, prime_wheel_30);
         let mut mp = mpgen.into_iter();
         for i in 0..testvec.len() {
             let p = mp.next().unwrap();
@@ -265,10 +259,10 @@ mod tests {
     }
 
     #[test]
-    fn test_maybe_prime_quality() {
+    fn test_prime_wheel_quality() {
         let mut primes: u128 = 0;
         let mut others: u128 = 0;
-        let_gen_using!(mpgen, maybe_prime_gen);
+        let_gen_using!(mpgen, prime_wheel_30);
         let mut mp = mpgen.into_iter();
         for _ in 0..1000000 {
             let p = mp.next().unwrap();
@@ -279,7 +273,7 @@ mod tests {
             }
         }
         let percent = primes as f64 / (primes + others) as f64 * 100.0;
-        println!("Maybe prime generated {}/{} ({:.3}%) primes",
+        println!("Prime wheel generated {}/{} ({:.3}%) primes",
                  primes, primes+others, percent);
         assert!(percent > 25.0);
     }

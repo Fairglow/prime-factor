@@ -4,7 +4,6 @@ use rand::Rng;
 use rand::prelude::*;
 use rand::rngs::SmallRng;
 use std::ops::RangeInclusive;
-use std::time::Duration;
 
 fn num_str(n: u64) -> String {
     let units = ["", "ki", "Mi", "Gi", "Ti", "Pi", "Ei"];
