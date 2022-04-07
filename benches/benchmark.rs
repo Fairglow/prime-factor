@@ -19,11 +19,11 @@ fn num_str(n: u64) -> String {
 }
 
 fn pf_number(n: u128) {
-    PrimeFactors::from(n);
+    let _ = PrimeFactors::from(n);
 }
 
 fn pf_random(rnd: &mut SmallRng, interval: RangeInclusive<u64>, _n: u128) {
-    PrimeFactors::from(rnd.gen_range(interval) as u128);
+    let _ = PrimeFactors::from(rnd.gen_range(interval) as u128);
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
