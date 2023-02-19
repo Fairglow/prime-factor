@@ -14,7 +14,7 @@ One of the design goals for this code is to minimize the memory overhead during 
 
 ## Prime wheel generator
 
-I know these have not been stabilized in Rust yet. In the code I will use [genawaiter](https://github.com/whatisaphone/genawaiter) which is based on the async handling in Rust. Using generators allows me to have minimal state while running. This is a slight optimization over an iterator, where you'd have to do a bit more work to achieve the same output, because an iterator restarts its function while a generator continues from its last call.
+I know [generators have not been stabilized](https://github.com/rust-lang/rust/issues/43122) in Rust yet. However, in the code I will use [genawaiter](https://github.com/whatisaphone/genawaiter) which is based on the Rust async handling. Using generators allows me to have minimal state while running. This is a slight optimization over an iterator, where you'd have to do a bit more work to achieve the same output, because an iterator restarts its function while a generator continues from its last call.
 
 The code uses a generator to find potential prime candidates and its algorithm must guarantee that all primes are generated, but it may produce some false positives. The cost of a false positive is one loop with one modulo calculation. Note that any non-prime value from the generator will have all its factors appear among the already generated numbers and therefore they can never appear in the final output.
 
