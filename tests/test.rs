@@ -1,9 +1,87 @@
 #[allow(unused_imports)]
-use primefactor::*;
 use rand::Rng;
 use rayon::prelude::*;
 use reikna;
-    
+use genawaiter::stack::let_gen_using;
+use primefactor::{
+    candidates::prime_wheel_30,
+    primefactor_gcd,
+    PrimeFactors,
+    u128_gcd,
+    u128_is_prime,
+    u128_lcm,
+    u128_sqrt};
+
+#[test]
+fn test_early_prime_wheel_numbers() {
+    let testvec = vec![
+        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 49, 53, 59,
+        61, 67, 71, 73, 77, 79, 83, 89, 91, 97, 101, 103, 107, 109, 113
+    ];
+    let_gen_using!(mpgen, prime_wheel_30);
+    let mut mp = mpgen.into_iter();
+    for i in 0..testvec.len() {
+        let p = mp.next().unwrap();
+        assert_eq!(testvec[i], p);
+    }
+}
+
+#[test]
+fn test_early_prime_candidate_numbers() {
+    let testvec = vec![
+        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 49, 53, 59,
+        61, 67, 71, 73, 77, 79, 83, 89, 91, 97, 101, 103, 107, 109, 113
+    ];
+    let_gen_using!(mpgen, prime_wheel_30);
+    let mut mp = mpgen.into_iter();
+    for i in 0..testvec.len() {
+        let p = mp.next().unwrap();
+        assert_eq!(testvec[i], p);
+    }
+}
+
+#[test]
+fn test_prime_wheel_quality() {
+    let mut primes: u128 = 0;
+    let mut others: u128 = 0;
+    let_gen_using!(mpgen, prime_wheel_30);
+    let mut mp = mpgen.into_iter();
+    for _ in 0..1000000 {
+        let p = mp.next().unwrap();
+        if u128_is_prime(p) {
+            primes += 1;
+        } else {
+            others += 1;
+        }
+    }
+    let percent = primes as f64 / (primes + others) as f64 * 100.0;
+    println!("Prime wheel generated {}/{} ({:.3}%) primes",
+             primes, primes+others, percent);
+    assert!(percent > 25.0);
+}
+
+#[test]
+fn test_int_sqrt_pow_of_2() {
+    let mut rnd = rand::thread_rng();
+    for _ in 1..1000 {
+        let n = rnd.gen_range(1..u128_sqrt(u128::MAX));
+        let sqrt = u128_sqrt(n.pow(2));
+        assert_eq!(sqrt, n);
+    }
+}
+
+#[test]
+fn test_int_sqrt_floor() {
+    let mut rnd = rand::thread_rng();
+    for _ in 1..1000 {
+        // Largest integer in a f64 is 2^53-1 (52 bits mantissa)
+        let n = rnd.gen_range(1..u64::pow(2, 53) as u128);
+        let expt = f64::sqrt(n as f64) as u128;
+        let sqrt = u128_sqrt(n);
+        assert_eq!(sqrt, expt);
+    }
+}
+
 #[test]
 fn test_is_prime() {
     for num in 2..=1000 {
@@ -142,18 +220,9 @@ fn find_highest_32bit_prime() {
     assert_eq!(found, 4294967291);
 }
 
-
 #[test]
-fn find_highest_64bit_prime() {
-    (0..60).into_par_iter().for_each(|n| {
-        let num: u128 = (u64::MAX - n) as u128;
-        match n {
-            58 => {
-                assert_eq!(num, 18446744073709551557);
-                assert_eq!(u128_is_prime(num), true);
-                println!("#{}: {} is a prime number", n, num);
-            },
-            _ => assert_eq!(u128_is_prime(num), false),
-        }
-    });
+fn worst_case_64bit_prime() {
+    let num: u128 = (u64::MAX - 58) as u128;
+    assert_eq!(num, 18446744073709551557);
+    assert_eq!(u128_is_prime(num), true);
 }

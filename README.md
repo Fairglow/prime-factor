@@ -4,7 +4,7 @@ The library will calculate all the prime number factors of any 128-bit unsigned 
 
 ## Memory efficiency
 
-Main memory accesses are typically quite slow[^1] and a lot of the algorithms for calculating prime numbers use quite a lot of memory, the cache helps but not enough. During a single main memory load there is time for in the order of hundreds of calculations, which will be wasted cycles unless we can utilize them somehow. This means that we can get an efficient algorithm even with a bit of wasted computations if we can limit the number of memory operations.
+A lot of prime number algorithms require a significant amount of memory, but accessing main memory can be a slow process[^1]. While the cache can provide some assistance, it may not be sufficient. With each load from main memory, there is typically enough time for up to hundreds of calculations. These cycles would be wasted, unless we can find some work to do while waiting for the load. Therefore, even with some amount of wasted computations, we can still achieve an efficient algorithm if we can minimize the number of memory operations.
 
 In my personal experience any algorithm that needs to store a lot of data will be limited by the memory accesses, it is often faster to recreate some computations rather than loading them from memory. Therefore do not save values to memory that can be easily computed.
 

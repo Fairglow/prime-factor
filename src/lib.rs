@@ -1,25 +1,11 @@
 //! Module for factorizing integers
+pub mod candidates;
+
 use std::cmp::{min, Ordering};
 use std::convert::From;
 use std::fmt;
-use genawaiter::yield_;
-use genawaiter::stack::{let_gen_using, producer_fn};
-
-/// Wheel factorization algorithm with base {2, 3, 5}
-/// https://en.wikipedia.org/wiki/Wheel_factorization
-#[producer_fn(u128)]
-async fn prime_wheel_30() {
-    yield_!(2);
-    yield_!(3);
-    yield_!(5);
-    let mut base = 0u128;
-    loop {
-        for n in [7, 11, 13, 17, 19, 23, 29, 31] {
-            yield_!(base + n);
-        }
-        base += 30;
-    }
-}
+use genawaiter::stack::let_gen_using;
+use candidates::prime_wheel_30;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct IntFactor {
@@ -50,7 +36,7 @@ pub struct PrimeFactors {
 
 impl PrimeFactors {
     fn new() -> Self {
-        PrimeFactors { factors: Vec::new() }
+        PrimeFactors { factors: Vec::with_capacity(8) }
     }
     fn add(&mut self, integer: u128, exponent: u32) {
         self.factors.push(IntFactor { integer, exponent })
@@ -242,68 +228,4 @@ pub fn u128_lcm(this: u128, that: u128) -> u128 {
     if this == 0 && that == 0 { return 0; }
     let gcd = u128_gcd(this, that);
     this * that / gcd
-}
-
-#[cfg(test)]
-mod tests {
-    #[allow(unused_imports)]
-    use crate::*;
-    use rand::Rng;
-    use genawaiter::stack::let_gen_using;
-    
-    #[test]
-    fn test_early_prime_wheel_numbers() {
-        let testvec = vec![
-            2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 49, 53, 59,
-            61, 67, 71, 73, 77, 79, 83, 89, 91, 97, 101, 103, 107, 109, 113
-        ];
-        let_gen_using!(mpgen, prime_wheel_30);
-        let mut mp = mpgen.into_iter();
-        for i in 0..testvec.len() {
-            let p = mp.next().unwrap();
-            assert_eq!(testvec[i], p);
-        }
-    }
-
-    #[test]
-    fn test_prime_wheel_quality() {
-        let mut primes: u128 = 0;
-        let mut others: u128 = 0;
-        let_gen_using!(mpgen, prime_wheel_30);
-        let mut mp = mpgen.into_iter();
-        for _ in 0..1000000 {
-            let p = mp.next().unwrap();
-            if u128_is_prime(p) {
-                primes += 1;
-            } else {
-                others += 1;
-            }
-        }
-        let percent = primes as f64 / (primes + others) as f64 * 100.0;
-        println!("Prime wheel generated {}/{} ({:.3}%) primes",
-                 primes, primes+others, percent);
-        assert!(percent > 25.0);
-    }
-
-    #[test]
-    fn test_int_sqrt_pow_of_2() {
-        let mut rnd = rand::thread_rng();
-        for _ in 1..1000 {
-            let n = rnd.gen_range(1..u128_sqrt(u128::MAX));
-            let sqrt = u128_sqrt(n.pow(2));
-            assert_eq!(sqrt, n);
-        }
-    }
-
-    #[test]
-    fn test_int_sqrt_floor() {
-        let mut rnd = rand::thread_rng();
-        for _ in 1..1000 {
-            // Largest integer in a f64 is 2^53-1 (52 bits mantissa)
-            let n = rnd.gen_range(1..u64::pow(2, 53) as u128);
-            let expt = f64::sqrt(n as f64) as u128;
-            let sqrt = u128_sqrt(n);
-            assert_eq!(sqrt, expt);
-        }
-    }
 }
