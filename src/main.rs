@@ -1,5 +1,5 @@
 use std::ops::RangeInclusive;
-use clap::{App, Arg};
+use clap::{Command, Arg, parser::ValuesRef};
 use log::{debug, info};
 use rayon::prelude::*;
 use primefactor::PrimeFactors;
@@ -9,23 +9,23 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
 
 fn main() {
-    let args = App::new(APPNAME)
+    let args = Command::new(APPNAME)
         .version(VERSION)
         .author(AUTHORS)
         .about("Prime Factorizer")
-        .arg(Arg::with_name("verbosity")
-            .short("v")
+        .arg(Arg::new("verbosity")
+            .short('v')
             .long("verbose")
-            .multiple(true)
+            .num_args(0..)
             .help("Increase the level of verbosity"))
-        .arg(Arg::with_name("number")
-            .multiple(true)
+        .arg(Arg::new("number")
+            .num_args(1..)
             .required(true)
             .number_of_values(1)
             .value_name("NUMBER")
             .help("One or more numbers or ranges (inclusive)"))
         .get_matches();
-    let verbosity = args.occurrences_of("verbosity") as usize;
+    let verbosity = args.get_count("verbosity") as usize;
     stderrlog::new()
         .module(module_path!())
         .verbosity(verbosity)
@@ -33,7 +33,7 @@ fn main() {
         .unwrap();
     info!("Welcome to Prime factorizer");
 
-    let numstr_vec = args.values_of("number").unwrap();
+    let numstr_vec: ValuesRef<String> = args.get_many("number").unwrap();
     let mut range_vec: Vec<RangeInclusive<u128>> = Vec::new();
     for numstr in numstr_vec {
         let mut no_range = true;
