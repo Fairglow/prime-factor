@@ -30,8 +30,8 @@ On an old system (i7-6700):
 - full test suite completes in about 7 minutes
 
 On a modern system (i7-12700):
-- 32-bit, random number in about 7 us and worst case in 66.5 us
-- 64-bit, random number in about 348 ms ([58 .. 765] ms) and worst case in 4.44 s
+- 32-bit, random number in about 6.5 us and worst case in 68 us
+- 64-bit, random number in about 140 ms ([3 .. 340] ms) and worst case in 4.6 s
 - full test suite completes in less than 3 minutes
 
 The above numbers are taken from the included benchmark test, which you can run with the command: `cargo bench`. Note that it will take a few minutes to run the full suite, in which time you need to close all other applications and leave it unattended, to give the benchmark the most processing power possible.

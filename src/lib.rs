@@ -6,6 +6,7 @@ use std::convert::From;
 use std::fmt;
 use genawaiter::stack::let_gen_using;
 use candidates::prime_wheel_30;
+use num::integer::Roots;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct IntFactor {
@@ -97,7 +98,7 @@ impl From<u128> for PrimeFactors {
         let mut pf = PrimeFactors::new();
         if n < 2 { return pf; }
         // A factor of n must have a value less than or equal to sqrt(n)
-        let mut maxf = u128_sqrt(n) + 1;
+        let mut maxf = n.sqrt() + 1;
         let_gen_using!(mpgen, prime_wheel_30);
         let mut x = n;
         for f in mpgen.into_iter() {
@@ -111,7 +112,7 @@ impl From<u128> for PrimeFactors {
             }
             if c > 0 {
                 // A factor of x must have a value less than or equal to sqrt(x)
-                maxf = u128_sqrt(x) + 1;
+                maxf = x.sqrt() + 1;
                 pf.add(f, c);
             }
             if x == 1 {
@@ -164,20 +165,6 @@ impl<'a> IntoIterator for &'a PrimeFactors {
     }
 }
 
-/// Unsigned 128-bit integer square root calculation.
-/// Based on example implementation in C at:
-/// https://en.wikipedia.org/wiki/Integer_square_root
-pub fn u128_sqrt(s: u128) -> u128 {
-    let mut g = s >> 1; // Initial guess
-    if g == 0 { return s; } // sanity check
-    let mut u = (g + s / g) >> 1; // update
-    while u < g { // this also checks for cycle
-        g = u;
-        u = (g + s / g) >> 1;
-    }
-    g
-}
-
 /// Test if the value is a prime number, or not
 pub fn u128_is_prime(n: u128) -> bool {
     if n < 2 { return false; }
@@ -189,7 +176,7 @@ pub fn u128_is_prime(n: u128) -> bool {
         }
     }
     // A factor of n must have a value less than or equal to sqrt(n)
-    let maxf = u128_sqrt(n) + 1;
+    let maxf = n.sqrt() + 1;
     let_gen_using!(mpgen, prime_wheel_30);
     for f in mpgen.into_iter() {
         if f >= maxf {

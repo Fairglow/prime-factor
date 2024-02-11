@@ -9,8 +9,7 @@ use primefactor::{
     PrimeFactors,
     u128_gcd,
     u128_is_prime,
-    u128_lcm,
-    u128_sqrt};
+    u128_lcm};
 
 #[test]
 fn test_early_prime_wheel_numbers() {
@@ -58,28 +57,6 @@ fn test_prime_wheel_quality() {
     println!("Prime wheel generated {}/{} ({:.3}%) primes",
              primes, primes+others, percent);
     assert!(percent > 25.0);
-}
-
-#[test]
-fn test_int_sqrt_pow_of_2() {
-    let mut rnd = rand::thread_rng();
-    for _ in 1..1000 {
-        let n = rnd.gen_range(1..u128_sqrt(u128::MAX));
-        let sqrt = u128_sqrt(n.pow(2));
-        assert_eq!(sqrt, n);
-    }
-}
-
-#[test]
-fn test_int_sqrt_floor() {
-    let mut rnd = rand::thread_rng();
-    for _ in 1..1000 {
-        // Largest integer in a f64 is 2^53-1 (52 bits mantissa)
-        let n = rnd.gen_range(1..u64::pow(2, 53) as u128);
-        let expt = f64::sqrt(n as f64) as u128;
-        let sqrt = u128_sqrt(n);
-        assert_eq!(sqrt, expt);
-    }
 }
 
 #[test]
