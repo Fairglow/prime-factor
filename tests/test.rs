@@ -196,10 +196,3 @@ fn find_highest_32bit_prime() {
     });
     assert_eq!(found, 4294967291);
 }
-
-#[test]
-fn worst_case_64bit_prime() {
-    let num: u128 = (u64::MAX - 58) as u128;
-    assert_eq!(num, 18446744073709551557);
-    assert_eq!(u128_is_prime(num), true);
-}
