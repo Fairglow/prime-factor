@@ -57,9 +57,6 @@ impl PrimeFactors {
     pub fn is_prime(&self) -> bool {
         self.count_factors() == 1
     }
-    pub fn iter(&self) -> PrimeFactorsIter {
-        PrimeFactorsIter { vec: &self.factors, ndx: 0 }
-    }
     pub fn to_factor_vec(&self) -> &Vec<IntFactor> {
         &self.factors
     }
@@ -137,31 +134,12 @@ impl fmt::Display for PrimeFactors {
 }
 
 /// IntFactor interator
-pub struct PrimeFactorsIter<'a> {
-    vec: &'a Vec<IntFactor>,
-    ndx: usize,
-}
-
-impl<'a> Iterator for PrimeFactorsIter<'a> {
-    type Item = IntFactor;
-
-    fn next(&mut self) -> Option<IntFactor> {
-        if self.ndx >= self.vec.len() { return None; }
-        let pf = self.vec[self.ndx];
-        self.ndx += 1;
-        Some(pf)
-    }
-}
-
 impl<'a> IntoIterator for &'a PrimeFactors {
-    type Item = IntFactor;
-    type IntoIter = PrimeFactorsIter<'a>;
+    type Item = &'a IntFactor; // Items yielded by the iterator will be references
+    type IntoIter = std::slice::Iter<'a, IntFactor>; // Use a slice iterator
 
     fn into_iter(self) -> Self::IntoIter {
-        PrimeFactorsIter {
-            vec: &self.factors,
-            ndx: 0,
-        }
+        self.factors.iter()  // Create a standard slice iterator
     }
 }
 
