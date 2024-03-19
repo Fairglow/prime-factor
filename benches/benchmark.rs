@@ -4,6 +4,7 @@ use rand::Rng;
 use rand::prelude::*;
 use rand::rngs::SmallRng;
 use std::ops::RangeInclusive;
+use std::time::Duration;
 
 fn num_str(n: u64) -> String {
     let units = ["", "ki", "Mi", "Gi", "Ti", "Pi", "Ei"];
@@ -36,7 +37,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             pf_number(base as u128 + black_box(count as u128))));
     }
 
-    let mut fixed_grp = c.benchmark_group("fixed-nubmers");
+    let mut fixed_grp = c.benchmark_group("worst-case");
     fixed_grp.sample_size(10);
     fixed_grp.bench_function("prime-factor   highest 8-bit prime", |b| b.iter(||
         pf_number(251)));
@@ -44,16 +45,18 @@ fn criterion_benchmark(c: &mut Criterion) {
         pf_number(65521)));
     fixed_grp.bench_function("prime-factor   highest 32-bit prime", |b| b.iter(||
         pf_number(4294967291)));
+    fixed_grp.measurement_time(Duration::new(60, 0));
     fixed_grp.bench_function("prime-factor   highest 64-bit prime", |b| b.iter(||
         pf_number(18446744073709551557)));
     fixed_grp.finish();
 
-    let mut rand_grp = c.benchmark_group("random-nubmers");
+    let mut rand_grp = c.benchmark_group("random-numbers");
     let mut rnd = SmallRng::from_rng(rand::thread_rng()).unwrap();
     rand_grp.bench_function("prime-factor   1Mi random 32-bit (> 16-bit)",
         |b| b.iter(|| pf_random(
             &mut rnd, u16::MAX as u64..=u32::MAX as u64, black_box(1 << 20))));
     rand_grp.sample_size(20);
+    rand_grp.measurement_time(Duration::new(30, 0));
     rand_grp.bench_function("prime-factor   20  random 64-bit (> 32-bit)",
         |b| b.iter(|| pf_random(
             &mut rnd, u32::MAX as u64..=u64::MAX, black_box(20))));
