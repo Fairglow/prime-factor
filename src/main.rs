@@ -13,11 +13,6 @@ fn main() {
         .version(VERSION)
         .author(AUTHORS)
         .about("Prime Factorizer")
-        .arg(Arg::new("verbosity")
-            .short('v')
-            .long("verbose")
-            .num_args(0..)
-            .help("Increase the level of verbosity"))
         .arg(Arg::new("number")
             .num_args(1..)
             .required(true)
@@ -25,12 +20,7 @@ fn main() {
             .value_name("NUMBER")
             .help("One or more numbers or ranges (inclusive)"))
         .get_matches();
-    let verbosity = args.get_count("verbosity") as usize;
-    stderrlog::new()
-        .module(module_path!())
-        .verbosity(verbosity)
-        .init()
-        .unwrap();
+    env_logger::init();
     info!("Welcome to Prime factorizer");
 
     let numstr_vec: ValuesRef<String> = args.get_many("number").unwrap();
