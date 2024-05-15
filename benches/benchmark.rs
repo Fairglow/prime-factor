@@ -39,15 +39,25 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let mut fixed_grp = c.benchmark_group("worst-case");
     fixed_grp.sample_size(10);
+    fixed_grp.bench_function("prime-factor   lowest prime", |b| b.iter(||
+        pf_number(2)));
     fixed_grp.bench_function("prime-factor   highest 8-bit prime", |b| b.iter(||
         pf_number(251)));
+    fixed_grp.bench_function("prime-factor   lowest 9-bit prime", |b| b.iter(||
+        pf_number(257)));
     fixed_grp.bench_function("prime-factor   highest 16-bit prime", |b| b.iter(||
         pf_number(65521)));
+    fixed_grp.bench_function("prime-factor   lowest 17-bit prime", |b| b.iter(||
+        pf_number(65537)));
     fixed_grp.bench_function("prime-factor   highest 32-bit prime", |b| b.iter(||
         pf_number(4294967291)));
+    fixed_grp.bench_function("prime-factor   lowest 33-bit prime", |b| b.iter(||
+        pf_number(4294967311)));
     fixed_grp.measurement_time(Duration::new(60, 0));
     fixed_grp.bench_function("prime-factor   highest 64-bit prime", |b| b.iter(||
         pf_number(18446744073709551557)));
+    fixed_grp.bench_function("prime-factor   lowest 65-bit prime", |b| b.iter(||
+        pf_number(18446744073709551629)));
     fixed_grp.finish();
 
     let mut rand_grp = c.benchmark_group("random-numbers");

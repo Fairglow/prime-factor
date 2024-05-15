@@ -5,6 +5,7 @@ use reikna;
 use genawaiter::stack::let_gen_using;
 use primefactor::{
     candidates::prime_wheel_30,
+    candidates::{prime_wheel_210, is_pw210_candidate},
     primefactor_gcd,
     PrimeFactors,
     u128_gcd,
@@ -12,7 +13,7 @@ use primefactor::{
     u128_lcm};
 
 #[test]
-fn test_early_prime_wheel_numbers() {
+fn test_early_prime_wheel_30_numbers() {
     let testvec = vec![
         2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 49, 53, 59,
         61, 67, 71, 73, 77, 79, 83, 89, 91, 97, 101, 103, 107, 109, 113
@@ -26,21 +27,52 @@ fn test_early_prime_wheel_numbers() {
 }
 
 #[test]
-fn test_early_prime_candidate_numbers() {
-    let testvec = vec![
-        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 49, 53, 59,
-        61, 67, 71, 73, 77, 79, 83, 89, 91, 97, 101, 103, 107, 109, 113
-    ];
-    let_gen_using!(mpgen, prime_wheel_30);
+fn test_1000th_prime_with_pw30() {
+    let mut primes = 0;
+    let mut prime = 0;
+    for i in 0..7920 {
+        if u128_is_prime(i as u128) {
+            primes += 1;
+            prime = i;
+        }
+    }
+    assert_eq!(primes, 1000);
+    assert_eq!(prime, 7919);
+}
+
+#[test]
+fn test_early_prime_wheel_210_numbers() {
+    let testvec: Vec<u128> = vec![
+        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61,
+        67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 121, 127, 131,
+        137, 139, 143, 149, 151, 157, 163, 167, 169, 173, 179, 181, 187, 191,
+        193, 197, 199, 209, 211, 221, 223, 227, 229, 233, 239, 241, 247, 251,
+        253, 257, 263, 269, 271, 277, 281, 283, 289, 293, 299, 307, 311, 313];
+    let_gen_using!(mpgen, prime_wheel_210);
     let mut mp = mpgen.into_iter();
     for i in 0..testvec.len() {
         let p = mp.next().unwrap();
         assert_eq!(testvec[i], p);
+        assert!(is_pw210_candidate(p));
     }
 }
 
 #[test]
-fn test_prime_wheel_quality() {
+fn test_1000th_prime_with_pw210() {
+    let mut primes = 0;
+    let mut prime = 0;
+    for i in 0..7920 {
+        if u128_is_prime(i as u128) {
+            primes += 1;
+            prime = i;
+        }
+    }
+    assert_eq!(primes, 1000);
+    assert_eq!(prime, 7919);
+}
+
+#[test]
+fn test_prime_wheel_30_quality() {
     let mut primes: u128 = 0;
     let mut others: u128 = 0;
     let_gen_using!(mpgen, prime_wheel_30);
@@ -57,6 +89,26 @@ fn test_prime_wheel_quality() {
     println!("Prime wheel generated {}/{} ({:.3}%) primes",
              primes, primes+others, percent);
     assert!(percent > 25.0);
+}
+
+#[test]
+fn test_prime_wheel_210_quality() {
+    let mut primes: u128 = 0;
+    let mut others: u128 = 0;
+    let_gen_using!(mpgen, prime_wheel_210);
+    let mut mp = mpgen.into_iter();
+    for _ in 0..1000000 {
+        let p = mp.next().unwrap();
+        if u128_is_prime(p) {
+            primes += 1;
+        } else {
+            others += 1;
+        }
+    }
+    let percent = primes as f64 / (primes + others) as f64 * 100.0;
+    println!("Prime wheel generated {}/{} ({:.3}%) primes",
+             primes, primes+others, percent);
+    assert!(percent > 30.0);
 }
 
 #[test]

@@ -26,14 +26,21 @@ We want this generator to be fast and give reasonably good guesses for prime num
 
 ## Factorization performance
 
-On an old system (i7-6700):
+On an old system (i7-6700), with a 30-spoke wheel:
 - 32-bit, random number in about 32 ms and worst case 300 ms
 - 64-bit, random number in about 1.4 s (± 1.1 s) with worst case about 20 s
-- full test suite completes in about 7 minutes
+- full benchmark completes in about 7 minutes
 
-On a modern system (i7-12700):
+On a modern system (i7-12700), with a 30-spoke wheel:
 - 32-bit, random number in about 6.5 us and worst case in 68 us
 - 64-bit, random number in about 140 ms ([3 .. 340] ms) and worst case in 4.6 s
-- full test suite completes in less than 3 minutes
+- full benchmark completes in less than 3 minutes
+
+Modern system (i7-12700) with a 210-spoke Prime Wheel:
+- 2..8-bit prime numbers in 12..34 ns
+- 9..16-bit prime numbers in 33..252 ns
+- 17..32-bit prime numbers in 0.25..57 us, on average 5.6 us
+- 33..64-bit prime numbers in 0.056..3704 ms
+- 65+ bits prime numbers from 3.65 s
 
 The above numbers are taken from the included benchmark test, which you can run with the command: `cargo bench`. Note that it will take a few minutes to run the full suite, in which time you need to close all other applications and leave it unattended, to give the benchmark the most processing power possible.

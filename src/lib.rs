@@ -5,7 +5,7 @@ use std::cmp::{min, Ordering};
 use std::convert::From;
 use std::fmt;
 use genawaiter::stack::let_gen_using;
-use candidates::prime_wheel_30;
+use candidates::{prime_wheel_210, is_pw210_candidate};
 use num::integer::Roots;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -96,7 +96,7 @@ impl From<u128> for PrimeFactors {
         if n < 2 { return pf; }
         // A factor of n must have a value less than or equal to sqrt(n)
         let mut maxf = n.sqrt() + 1;
-        let_gen_using!(mpgen, prime_wheel_30);
+        let_gen_using!(mpgen, prime_wheel_210);
         let mut x = n;
         for f in mpgen.into_iter() {
             if f >= maxf {
@@ -145,17 +145,12 @@ impl<'a> IntoIterator for &'a PrimeFactors {
 
 /// Test if the value is a prime number, or not
 pub fn u128_is_prime(n: u128) -> bool {
-    if n < 2 { return false; }
-    if n > 30 {
-        // check spoke in the prime wheel (base 30)
-        match n % 30 {
-            1|7|11|13|17|19|23|29 => (), // may be prime
-            _ => return false, // cannot be prime
-        }
+    if !is_pw210_candidate(n) {
+        return false;
     }
     // A factor of n must have a value less than or equal to sqrt(n)
     let maxf = n.sqrt() + 1;
-    let_gen_using!(mpgen, prime_wheel_30);
+    let_gen_using!(mpgen, prime_wheel_210);
     for f in mpgen.into_iter() {
         if f >= maxf {
             break;
