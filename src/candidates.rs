@@ -20,7 +20,7 @@ pub async fn prime_wheel_30() {
     }
 }
 
-pub const SPOKES: [u128; 48] = [
+const SPOKES: [u128; 48] = [
     11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73,
     79, 83, 89, 97, 101, 103, 107, 109, 113, 121, 127, 131, 137, 139, 143,
     149, 151, 157, 163, 167, 169, 173, 179, 181, 187, 191, 193, 197, 199,
@@ -52,14 +52,22 @@ const PW210_BITMAP: [u8; 27] = [
 
 pub fn is_pw210_candidate(num: u128) -> bool {
     if num < 11 {
-        match num {
-            2 | 3 | 5 | 7 => true,
-            _ => false,
-        }
+        matches!(num, 2 | 3 | 5 | 7)
     } else {
         let index = (num % 210) as usize; // Calculate bit position (0 to 209)
         let byte_index = index / 8; // Calculate byte index within the array
         let bit_mask = 1 << (index % 8); // Calculate bit-mask within the byte
         PW210_BITMAP[byte_index] & bit_mask > 0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn spokes_bitmap() {
+        (8..212).into_iter().for_each(|n| {
+            assert_eq!(SPOKES.contains(&n), is_pw210_candidate(n));
+        });
     }
 }
