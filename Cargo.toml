@@ -1,13 +1,12 @@
 [package]
 name = "prime-factor"
 description = "A prime number factorizer written in Rust"
-version = "0.5.1"
+version = "0.6.0"
 authors = ["Stefan Lindblad <stefan.lindblad@linux.com>"]
 license = "LGPL-2.1-or-later"
 edition = "2021"
 repository = "https://github.com/Fairglow/prime-factor.git"
 readme = "README.md"
-rust-version = "1.56"
 
 [lib]
 name = "primefactor"
@@ -23,16 +22,14 @@ path = "benches/benchmark.rs"
 harness = false
 
 [dependencies]
-clap = "4.4"
+clap = "4.5"
 log = "0.4"
 env_logger = "0.11"
-genawaiter = "0.99"
-rayon = "1.8"
-num = "0.4.1"
+rayon = "1.10"
 
 [dev-dependencies]
 criterion = "0.5"
-rand = { version = "0.8", features = ["small_rng"] }
+rand = "0.9"
 reikna = "0.12"
 
 [profile.release]

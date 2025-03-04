@@ -2,10 +2,8 @@
 use rand::Rng;
 use rayon::prelude::*;
 use reikna;
-use genawaiter::stack::let_gen_using;
 use primefactor::{
-    candidates::prime_wheel_30,
-    candidates::{prime_wheel_210, is_pw210_candidate},
+    candidates::{PrimeWheel30, PrimeWheel210, is_pw210_candidate},
     primefactor_gcd,
     PrimeFactors,
     u128_gcd,
@@ -18,10 +16,9 @@ fn test_early_prime_wheel_30_numbers() {
         2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 49, 53, 59,
         61, 67, 71, 73, 77, 79, 83, 89, 91, 97, 101, 103, 107, 109, 113
     ];
-    let_gen_using!(mpgen, prime_wheel_30);
-    let mut mp = mpgen.into_iter();
+    let mut pw_iter = PrimeWheel30::new();
     for i in 0..testvec.len() {
-        let p = mp.next().unwrap();
+        let p = pw_iter.next().unwrap();
         assert_eq!(testvec[i], p);
     }
 }
@@ -48,10 +45,9 @@ fn test_early_prime_wheel_210_numbers() {
         137, 139, 143, 149, 151, 157, 163, 167, 169, 173, 179, 181, 187, 191,
         193, 197, 199, 209, 211, 221, 223, 227, 229, 233, 239, 241, 247, 251,
         253, 257, 263, 269, 271, 277, 281, 283, 289, 293, 299, 307, 311, 313];
-    let_gen_using!(mpgen, prime_wheel_210);
-    let mut mp = mpgen.into_iter();
+    let mut pw_iter = PrimeWheel210::new();
     for i in 0..testvec.len() {
-        let p = mp.next().unwrap();
+        let p = pw_iter.next().unwrap();
         assert_eq!(testvec[i], p);
         assert!(is_pw210_candidate(p));
     }
@@ -75,10 +71,8 @@ fn test_1000th_prime_with_pw210() {
 fn test_prime_wheel_30_quality() {
     let mut primes: u128 = 0;
     let mut others: u128 = 0;
-    let_gen_using!(mpgen, prime_wheel_30);
-    let mut mp = mpgen.into_iter();
-    for _ in 0..1000000 {
-        let p = mp.next().unwrap();
+    let pw_iter = PrimeWheel30::new();
+    for p in pw_iter.take(1000000) {
         if u128_is_prime(p) {
             primes += 1;
         } else {
@@ -95,10 +89,8 @@ fn test_prime_wheel_30_quality() {
 fn test_prime_wheel_210_quality() {
     let mut primes: u128 = 0;
     let mut others: u128 = 0;
-    let_gen_using!(mpgen, prime_wheel_210);
-    let mut mp = mpgen.into_iter();
-    for _ in 0..1000000 {
-        let p = mp.next().unwrap();
+    let pw_iter = PrimeWheel210::new();
+    for p in pw_iter.take(1000000) {
         if u128_is_prime(p) {
             primes += 1;
         } else {
@@ -122,9 +114,9 @@ fn test_is_prime() {
 
 #[test]
 fn test_some_factors() {
-    let mut rnd = rand::thread_rng();
+    let mut rnd = rand::rng();
     for _ in 0..1000 {
-        let num = rnd.gen_range(2..u32::MAX as u128);
+        let num = rnd.random_range(2..u32::MAX as u128);
         let facts = PrimeFactors::from(num);
         assert_eq!(reikna::prime::is_prime(num as u64), facts.is_prime());
         if facts.is_prime() {
@@ -162,9 +154,9 @@ fn test_a_few_gcd() {
 #[test]
 fn test_compare_some_gcd() {
     (0..100).into_par_iter().for_each(|_| {
-        let mut rnd = rand::thread_rng();
-        let a = rnd.gen_range(2..u32::MAX as u128);
-        let b = rnd.gen_range(2..u32::MAX as u128);
+        let mut rnd = rand::rng();
+        let a = rnd.random_range(2..u32::MAX as u128);
+        let b = rnd.random_range(2..u32::MAX as u128);
         let pf_gcd = primefactor_gcd(a, b);
         let ea_gcd = u128_gcd(a, b);
         if pf_gcd.is_empty() {
@@ -191,10 +183,10 @@ fn test_a_few_lcm() {
 #[test]
 fn test_some_gcd_lcm() {
     (0..10).into_par_iter().for_each(|_| {
-        let mut rnd = rand::thread_rng();
-        let a = rnd.gen_range(2..u32::MAX as u128);
-        let b = rnd.gen_range(2..u32::MAX as u128);
-        let c = rnd.gen_range(2..u32::MAX as u128);
+        let mut rnd = rand::rng();
+        let a = rnd.random_range(2..u32::MAX as u128);
+        let b = rnd.random_range(2..u32::MAX as u128);
+        let c = rnd.random_range(2..u32::MAX as u128);
 
         // Test using the [Fundamental_theorem_of_arithmetic](https://en.wikipedia.org/wiki/Fundamental_theorem_of_arithmetic)
         assert_eq!(u128_gcd(a, b) * u128_lcm(a, b), a * b);
@@ -224,9 +216,9 @@ fn test_some_gcd_lcm() {
 #[test]
 fn test_compare_reikna_gcd_lcm() {
     (0..100).into_par_iter().for_each(|_| {
-        let mut rnd = rand::thread_rng();
-        let a = rnd.gen_range(2..u32::MAX as u64);
-        let b = rnd.gen_range(2..u32::MAX as u64);
+        let mut rnd = rand::rng();
+        let a = rnd.random_range(2..u32::MAX as u64);
+        let b = rnd.random_range(2..u32::MAX as u64);
         let gcd_r = reikna::factor::gcd(a, b);
         let gcd_t = u128_gcd(a as u128, b as u128) as u64;
         assert_eq!(gcd_r, gcd_t);

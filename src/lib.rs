@@ -1,12 +1,11 @@
 //! Module for factorizing integers
+#![deny(unsafe_code)]
 pub mod candidates;
 
 use std::cmp::{min, Ordering};
 use std::convert::From;
 use std::fmt;
-use genawaiter::stack::let_gen_using;
-use candidates::{prime_wheel_210, is_pw210_candidate};
-use num::integer::Roots;
+use candidates::{is_pw210_candidate, PrimeWheel210};
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct IntFactor {
@@ -95,11 +94,11 @@ impl From<u128> for PrimeFactors {
         let mut pf = PrimeFactors::new();
         if n < 2 { return pf; }
         // A factor of n must have a value less than or equal to sqrt(n)
-        let mut maxf = n.sqrt() + 1;
-        let_gen_using!(mpgen, prime_wheel_210);
+        let mut maxsq = n;
         let mut x = n;
-        for f in mpgen.into_iter() {
-            if f >= maxf {
+        let pw_iter = PrimeWheel210::new();
+        for f in pw_iter {
+            if f * f > maxsq {
                 break;
             }
             let mut c = 0;
@@ -108,8 +107,8 @@ impl From<u128> for PrimeFactors {
                 c += 1;
             }
             if c > 0 {
-                // A factor of x must have a value less than or equal to sqrt(x)
-                maxf = x.sqrt() + 1;
+                // A factor of x squared must be less than or equal to x
+                maxsq = x;
                 pf.add(f, c);
             }
             if x == 1 {
@@ -149,10 +148,9 @@ pub fn u128_is_prime(n: u128) -> bool {
         return false;
     }
     // A factor of n must have a value less than or equal to sqrt(n)
-    let maxf = n.sqrt() + 1;
-    let_gen_using!(mpgen, prime_wheel_210);
-    for f in mpgen.into_iter() {
-        if f >= maxf {
+    let pw_iter = PrimeWheel210::new();
+    for f in pw_iter {
+        if f * f > n {
             break;
         }
         if n % f == 0 {
