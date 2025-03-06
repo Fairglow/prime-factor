@@ -19,9 +19,13 @@ release:
     cargo build --release
 
 test:
-    cargo nextest run
+    cargo nextest run --test-threads num-cpus
+
+test-out:
+    #cargo test -- --nocapture
+    cargo nextest run --no-capture --test-threads num-cpus
 
 test-rel:
-    cargo nextest run --release
+    cargo nextest run --release --test-threads num-cpus
 
 tests: test test-rel

@@ -58,38 +58,32 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let mut fixed_grp = c.benchmark_group("worst-case");
     fixed_grp.sample_size(10);
-    fixed_grp.bench_function("prime-factor   lowest prime", |b| b.iter(||
+    fixed_grp.bench_function("prime-factor   lowest prime: 2", |b| b.iter(||
         pf_number(2)));
-    fixed_grp.bench_function("prime-factor   highest 8-bit prime", |b| b.iter(||
-        pf_number(251)));
-    fixed_grp.bench_function("prime-factor   lowest 9-bit prime", |b| b.iter(||
-        pf_number(257)));
-    fixed_grp.bench_function("prime-factor   highest 16-bit prime", |b| b.iter(||
-        pf_number(65521)));
-    fixed_grp.bench_function("prime-factor   lowest 17-bit prime", |b| b.iter(||
-        pf_number(65537)));
-    fixed_grp.bench_function("prime-factor   highest 32-bit prime", |b| b.iter(||
-        pf_number(4294967291)));
-    fixed_grp.bench_function("prime-factor   lowest 33-bit prime", |b| b.iter(||
-        pf_number(4294967311)));
-    fixed_grp.bench_function("prime-factor   highest 40-bit prime", |b| b.iter(||
-        pf_number(1099511627689)));
-    fixed_grp.bench_function("prime-factor   lowest 41-bit prime", |b| b.iter(||
-        pf_number(1099511627791)));
-    fixed_grp.bench_function("prime-factor   highest 48-bit prime", |b| b.iter(||
-        pf_number(281474976710597)));
-    fixed_grp.bench_function("prime-factor   lowest 49-bit prime", |b| b.iter(||
-        pf_number(281474976710677)));
-    fixed_grp.measurement_time(Duration::new(10, 0));
-    fixed_grp.bench_function("prime-factor   highest 56-bit prime", |b| b.iter(||
-        pf_number(72057594037927931)));
-    fixed_grp.bench_function("prime-factor   lowest 57-bit prime", |b| b.iter(||
-        pf_number(72057594037928017)));
-    fixed_grp.measurement_time(Duration::new(60, 0));
-    fixed_grp.bench_function("prime-factor   highest 64-bit prime", |b| b.iter(||
-        pf_number(18446744073709551557)));
-    fixed_grp.bench_function("prime-factor   lowest 65-bit prime", |b| b.iter(||
-        pf_number(18446744073709551629)));
+    const FIXED_VEC: [(u8, u64, u128); 17] = [
+        ( 4,   1, 13),
+        ( 8,   1, 251),
+        (12,   1, 4093),
+        (16,   1, 65521),
+        (20,   1, 1048573),
+        (24,   1, 16777213),
+        (28,   1, 268435399),
+        (32,   1, 4294967291),
+        (36,   1, 68719476731),
+        (40,   1, 1099511627689),
+        (44,   1, 17592186044399),
+        (48,   1, 281474976710597),
+        (52,   1, 4503599627370449),
+        (56,   9, 72057594037927931),
+        (60,  36, 1152921504606846883),
+        (64,  60, 18446744073709551557),
+        (68, 107, 295147905179352825833),
+    ];
+    for (bits, secs, prime) in FIXED_VEC.into_iter() {
+        fixed_grp.measurement_time(Duration::new(secs, 0));
+        let msg = format!("prime-factors for highest {:2}-bit prime number: {}", bits, prime);
+        fixed_grp.bench_function(&msg, |b| b.iter(|| pf_number(prime)));
+    }
     fixed_grp.finish();
 }
 

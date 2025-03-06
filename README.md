@@ -14,33 +14,39 @@ One of the design goals for this code is to minimize the memory overhead during 
 
 [^1]: [Latency Numbers Every Programmer Should Know](https://gist.github.com/jboner/2841832)
 
-## Prime wheel generator
+## Prime wheel iterator
 
-I know [generators have not been stabilized](https://github.com/rust-lang/rust/issues/43122) in Rust yet. However, in the code I will use [genawaiter](https://github.com/whatisaphone/genawaiter) which is based on the Rust async handling. Using generators allows me to have minimal state while running. This is a slight optimization over an iterator, where you'd have to do a bit more work to achieve the same output, because an iterator restarts its function while a generator continues from its last call.
+The code uses an iterator to find potential prime candidates and its algorithm must guarantee that all primes are generated, but it may produce some false positives. The cost of a false positive is one loop with one modulo calculation. Note that any non-prime value from the iterator will have all its factors appear among the already generated numbers and therefore they can never appear in the final output.
 
-The code uses a generator to find potential prime candidates and its algorithm must guarantee that all primes are generated, but it may produce some false positives. The cost of a false positive is one loop with one modulo calculation. Note that any non-prime value from the generator will have all its factors appear among the already generated numbers and therefore they can never appear in the final output.
-
-We want this generator to be fast and give reasonably good guesses for prime numbers. For this purpose we use a prime wheel[^2] function with a base of 30. In the first million of numbers it has a hit-rate of about 26.7%, which is pretty good considering its speed. Consider that a false positive is not that expensive, but a false negative is a fatal flaw. I fully expect the hit-rate to drop for higher numbers.
+We want this iterator to be fast and give reasonably good guesses for prime numbers. For this purpose we use a prime wheel[^2] function with a base of 210. In the first million of numbers it has a hit-rate of about 30.8%, which is pretty good considering its speed. Consider that a false positive is not that expensive, but a false negative is a fatal flaw. I fully expect the hit-rate to drop for higher numbers. The 30-spoke prime wheel has a 26.7% hit-rate.
 
 [^2]: See the Wikipedia article on [wheel factorization](https://en.wikipedia.org/wiki/Wheel_factorization) for more information.
 
 ## Factorization performance
 
-On an old system (i7-6700), with a 30-spoke wheel:
-- 32-bit, random number in about 32 ms and worst case 300 ms
-- 64-bit, random number in about 1.4 s (± 1.1 s) with worst case about 20 s
-- full benchmark completes in about 7 minutes
-
-On a modern system (i7-12700), with a 30-spoke wheel:
-- 32-bit, random number in about 6.5 us and worst case in 68 us
-- 64-bit, random number in about 140 ms ([3 .. 340] ms) and worst case in 4.6 s
-- full benchmark completes in less than 3 minutes
-
 Modern system (i7-12700) with a 210-spoke Prime Wheel:
-- 2..8-bit prime numbers in 12..34 ns
-- 9..16-bit prime numbers in 33..252 ns
-- 17..32-bit prime numbers in 0.25..57 us, on average 5.6 us
-- 33..64-bit prime numbers in 0.056..3704 ms
-- 65+ bits prime numbers from 3.65 s
 
-The above numbers are taken from the included benchmark test, which you can run with the command: `cargo bench`. Note that it will take a few minutes to run the full suite, in which time you need to close all other applications and leave it unattended, to give the benchmark the most processing power possible.
+| Bitsize | Average Time | Min .. Max        |
+|---------|--------------|-------------------|
+| 2       | 11.3 ns      | 11.29 .. 11.39 ns |
+| 4       | 12.0 ns      | 11.96 .. 11.99 ns |
+| 8       | 20.5 ns      | 20.51 .. 20.53 ns |
+| 12      | 50.1 ns      | 50.09 .. 50.22 ns |
+| 16      | 177 ns       | 176.6 .. 177.9 ns |
+| 20      | 632 ns       | 626.0 .. 654.8 ns |
+| 24      | 2.44 us      | 2.439 .. 2.445 us |
+| 28      | 9.68 us      | 9.667 .. 9.699 us |
+| 32      | 38.1 us      | 37.93 .. 38.39 us |
+| 36      | 155 us       | 154.5 .. 155.4 us |
+| 40      | 609 us       | 607.6 .. 610.1 us |
+| 44      | 2.44 ms      | 2.435 .. 2.459 ms |
+| 48      | 9.91 ms      | 9.901 .. 9.916 ms |
+| 52      | 39.5 ms      | 39.25 .. 39.75 ms |
+| 56      | 159 ms       | 158.5 .. 159.3 ms |
+| 60      | 637 ms       | 634.8 .. 639.3 ms |
+| 64      | 2.55 s       | 2.539 .. 2.551 s  |
+| 68      | 10.2 s       | 10.18 .. 10.22 s  |
+
+The above numbers are taken from the included benchmark test, which you can run with the command: `cargo bench`. Note that it will take a few minutes to run the full suite, and in the meantime you should keep all other applications closed and leave the computer unattended, to give the benchmark the most processing power possible.
+
+All in all, it takes almost 10 minutes to run the full benchmark suite.
