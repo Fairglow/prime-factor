@@ -1,7 +1,6 @@
 #[allow(unused_imports)]
 use rand::Rng;
 use rayon::prelude::*;
-use reikna;
 use primefactor::{
     candidates::{PrimeWheel30, PrimeWheel210, is_pw210_candidate},
     primefactor_gcd,
@@ -108,7 +107,7 @@ fn test_is_prime() {
     for num in 2..=1000 {
         let prime = u128_is_prime(num);
         assert_eq!(reikna::prime::is_prime(num as u64), prime,
-                   "is num {} prime?", num);
+                   "is num {num} prime?");
     }
 }
 
@@ -231,10 +230,10 @@ fn test_compare_reikna_gcd_lcm() {
 #[test]
 fn find_highest_32bit_prime() {
     let mut found: u128 = 0;
-    (0..5).into_iter().for_each(|n| {
+    (0..5).for_each(|n| {
         let num: u128 = (u32::MAX - n) as u128;
         if u128_is_prime(num) {
-            println!("#{}: {} is a prime number", n, num);
+            println!("#{n}: {num} is a prime number");
             found = num;
         }
     });

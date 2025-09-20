@@ -1,6 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use primefactor::*;
-use std::time::Duration;
+use std::{hint::black_box, time::Duration};
 use crate::candidates::{PrimeWheel30, PrimeWheel210};
 
 fn num_str(n: u64) -> String {
@@ -13,7 +13,7 @@ fn num_str(n: u64) -> String {
         }
         r >>= 10;
     }
-    format!("{}", n)
+    format!("{n}")
 }
 
 fn pf_number(n: u128) {
@@ -33,9 +33,9 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut pw_grp = c.benchmark_group("prime-wheel");
     pw_grp.sample_size(10);
     pw_grp.bench_function("30-spokes   up to 10000019", |b| b.iter(|| {
-        let mut pw_iter = PrimeWheel30::new();
+        let pw_iter = PrimeWheel30::new();
         let mut sum: u128 = 0;
-        while let Some(n) = pw_iter.next() {
+        for n in pw_iter {
             if n == BREAK_PRIME {
                 break;
             }
@@ -44,9 +44,9 @@ fn criterion_benchmark(c: &mut Criterion) {
         assert_eq!(sum, 13333376666710);
     }));
     pw_grp.bench_function("210-spokes  up to 10000019", |b| b.iter(|| {
-        let mut pw_iter = PrimeWheel210::new();
+        let pw_iter = PrimeWheel210::new();
         let mut sum: u128 = 0;
-        while let Some(n) = pw_iter.next() {
+        for n in pw_iter {
             if n == BREAK_PRIME {
                 break;
             }
@@ -81,7 +81,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     ];
     for (bits, secs, prime) in FIXED_VEC.into_iter() {
         fixed_grp.measurement_time(Duration::new(secs, 0));
-        let msg = format!("prime-factors for highest {:2}-bit prime number: {}", bits, prime);
+        let msg = format!("prime-factors for highest {bits:2}-bit prime number: {prime}");
         fixed_grp.bench_function(&msg, |b| b.iter(|| pf_number(prime)));
     }
     fixed_grp.finish();

@@ -124,7 +124,7 @@ mod tests {
     use super::{PrimeWheel210, is_pw210_candidate, is_pw210_candidate_b};
     #[test]
     fn test_spokes() {
-        (8..212).into_iter().for_each(|n| {
+        (8..212).for_each(|n| {
             assert_eq!(PrimeWheel210::SPOKES.contains(&n), is_pw210_candidate(n));
         });
     }

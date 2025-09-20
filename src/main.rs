@@ -48,12 +48,12 @@ fn main() {
         let par_iter: Vec<_> = rng.into_par_iter().map(|n| {
             let factors = PrimeFactors::from(n);
             if factors.is_prime() {
-                format!("{} is prime!", n)
+                format!("{n} is prime!")
             } else {
-                format!("{} = {}", n, factors)
+                format!("{n} = {factors}")
             }
         }).collect();
-        for outstr in par_iter { println!("{}", outstr); }
+        for outstr in par_iter { println!("{outstr}"); }
     }
 }
 

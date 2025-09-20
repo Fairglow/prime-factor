@@ -1,10 +1,10 @@
 [package]
 name = "prime-factor"
 description = "A prime number factorizer written in Rust"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["Stefan Lindblad <stefan.lindblad@linux.com>"]
 license = "LGPL-2.1-or-later"
-edition = "2021"
+edition = "2024"
 repository = "https://github.com/Fairglow/prime-factor.git"
 readme = "README.md"
 
@@ -25,10 +25,10 @@ harness = false
 clap = "4.5"
 log = "0.4"
 env_logger = "0.11"
-rayon = "1.10"
+rayon = "1.11"
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0.7"
 rand = "0.9"
 reikna = "0.12"
 

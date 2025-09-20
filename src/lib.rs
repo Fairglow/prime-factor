@@ -102,7 +102,7 @@ impl From<u128> for PrimeFactors {
                 break;
             }
             let mut c = 0;
-            while x % f == 0 {
+            while x.is_multiple_of(f) {
                 x /= f;
                 c += 1;
             }
@@ -153,7 +153,7 @@ pub fn u128_is_prime(n: u128) -> bool {
         if f * f > n {
             break;
         }
-        if n % f == 0 {
+        if n.is_multiple_of(f) {
             return false;
         }
     }
