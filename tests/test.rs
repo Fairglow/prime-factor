@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use rand::Rng;
+use rand::RngExt;
 use rayon::prelude::*;
 use primefactor::{
     candidates::{PrimeWheel30, PrimeWheel210, is_pw210_candidate},
