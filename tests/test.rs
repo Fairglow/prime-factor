@@ -12,7 +12,7 @@ use reikna::prime::{is_prime, nth_prime};
 #[test]
 fn test_is_prime() {
     let mut rnd = rand::rng();
-    for _ in 2..=1000 {
+    for _ in 0..10000 {
         let n = rnd.random_range(2..u32::MAX);
         assert_eq!(u128_is_prime(n as u128), is_prime(n as u64), "is num {n} prime?");
     }
@@ -31,7 +31,7 @@ fn test_some_factors() {
     let mut rnd = rand::rng();
     for _ in 0..1000 {
         let num = rnd.random_range(2..u32::MAX as u128);
-        let facts = PrimeFactors::from(num);
+        let facts = PrimeFactors::factorize(num);
         assert_eq!(u128_is_prime(num), facts.is_prime());
         if facts.is_prime() {
             let fe = &facts.to_vec();
@@ -45,10 +45,10 @@ fn test_some_factors() {
 
 #[test]
 fn test_a_few_gcd() {
-    assert_eq!(primefactor_gcd(2*3*5*7, 2*5*11), PrimeFactors::from(2*5));
-    assert_eq!(primefactor_gcd(3*4*5, 3*4*7), PrimeFactors::from(3*4));
-    assert_eq!(primefactor_gcd(9*4*11, 3*8*13), PrimeFactors::from(3*4));
-    assert_eq!(primefactor_gcd(27*64*121, 9*32*49), PrimeFactors::from(9*32));
+    assert_eq!(primefactor_gcd(2*3*5*7, 2*5*11), PrimeFactors::factorize(2*5));
+    assert_eq!(primefactor_gcd(3*4*5, 3*4*7), PrimeFactors::factorize(3*4));
+    assert_eq!(primefactor_gcd(9*4*11, 3*8*13), PrimeFactors::factorize(3*4));
+    assert_eq!(primefactor_gcd(27*64*121, 9*32*49), PrimeFactors::factorize(9*32));
     let no_gcd = primefactor_gcd(3*7*13, 2*5*11);
     assert!(no_gcd.is_empty());
     assert!(primefactor_gcd(1, 1).is_empty());
@@ -153,4 +153,24 @@ fn find_highest_32bit_prime() {
         }
     });
     assert_eq!(found, 4294967291);
+}
+
+#[test]
+fn test_large_composites_above_mr_threshold() {
+    // Composites above the MR threshold are rejected quickly by Miller-Rabin
+    assert!(!u128_is_prime(170141183460469231731687303715884105729));
+    assert!(!u128_is_prime(170141183460469231731687303715884105723));
+    assert!(!u128_is_prime(65521 * 4294967291 * 68719476731 * 961748941));
+    // Even numbers
+    assert!(!u128_is_prime(618970019642690137449562112));
+    // Squares of large primes
+    assert!(!u128_is_prime(4294967291_u128 * 4294967291_u128 * 4294967291_u128));
+}
+
+#[test]
+#[ignore] // Very slow: trial-division fallback for primes above the MR threshold
+fn test_large_primes_above_mr_threshold() {
+    assert!(u128_is_prime(618970019642690137449562111));          // 2^89 - 1
+    assert!(u128_is_prime(162259276829213363391578010288127));     // 2^107 - 1
+    assert!(u128_is_prime(170141183460469231731687303715884105727)); // 2^127 - 1
 }

@@ -9,9 +9,8 @@
 //! is much smaller than the u128 limit. The wheel iterators will stop before
 //! the square root of the maximum u128 value, which is approximately 1.15e19.
 //!
-#![allow(dead_code)]
-
 /// Wheel factorization algorithm with base {2, 3, 5} (30 spokes)
+#[allow(dead_code)]
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct PrimeWheel30 {
     base: u128,
@@ -88,6 +87,93 @@ impl Iterator for PrimeWheel210 {
     }
 }
 
+/// Fast prime candidate filter using the 210-spoke wheel bitmap.
+/// Returns false for any number divisible by 2, 3, 5, or 7,
+/// eliminating ~77% of all composites with a single modulo + bit-test.
+#[inline(always)]
+pub fn is_prime_candidate(n: u128) -> bool {
+    if n < 11 {
+        return matches!(n, 2 | 3 | 5 | 7);
+    }
+    const BITMAP: [u32; 7] = [
+        0xa08a_2802, 0x2820_8a20, 0x0208_8288, 0x8202_28a2,
+        0x20a0_8a08, 0x8828_2288, 0x0002_00a2,
+    ];
+    let index = (n % 210) as usize;
+    BITMAP[index / 32] & (1 << (index & 0x1F)) != 0
+}
+
+/// Modular exponentiation: (base^exp) mod modulus.
+#[inline]
+fn mod_pow(mut base: u128, mut exp: u128, modulus: u128) -> u128 {
+    if modulus == 1 { return 0; }
+    let mut result: u128 = 1;
+    base %= modulus;
+    while exp > 0 {
+        if exp & 1 == 1 {
+            result = mod_mul(result, base, modulus);
+        }
+        exp >>= 1;
+        base = mod_mul(base, base, modulus);
+    }
+    result
+}
+
+/// Modular multiplication: (a * b) mod m, without overflow.
+/// Uses direct multiplication when the product fits in u128, otherwise
+/// falls back to Russian peasant multiplication (doubling and adding).
+#[inline]
+fn mod_mul(a: u128, b: u128, m: u128) -> u128 {
+    // For small moduli where a*b won't overflow u128, use direct multiplication
+    if a.leading_zeros() + b.leading_zeros() >= 128 {
+        return (a * b) % m;
+    }
+    // Otherwise, use Russian peasant multiplication to avoid overflow
+    let mut result: u128 = 0;
+    let mut a = a % m;
+    let mut b = b % m;
+    while b > 0 {
+        if b & 1 == 1 {
+            result = result.wrapping_add(a);
+            if result >= m { result -= m; }
+        }
+        a <<= 1;
+        if a >= m { a -= m; }
+        b >>= 1;
+    }
+    result
+}
+
+/// Test a single Miller-Rabin witness against n.
+/// Returns true if n passes the test for this witness (probably prime).
+fn miller_rabin_witness(n: u128, a: u128, d: u128, r: u32) -> bool {
+    let mut x = mod_pow(a, d, n);
+    if x == 1 || x == n - 1 {
+        return true;
+    }
+    for _ in 1..r {
+        x = mod_mul(x, x, n);
+        if x == n - 1 {
+            return true;
+        }
+    }
+    false
+}
+
+/// Deterministic Miller-Rabin primality test.
+///
+/// Uses witnesses {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37} which are
+/// proven sufficient for all numbers below 3,317,044,064,679,887,385,961,981.
+///
+/// Reference: <https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test>
+pub fn miller_rabin(n: u128) -> bool {
+    const WITNESSES: [u128; 12] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
+    let n_minus_1 = n - 1;
+    let r = n_minus_1.trailing_zeros();
+    let d = n_minus_1 >> r;
+    WITNESSES.iter().all(|&a| a >= n || miller_rabin_witness(n, a, d, r))
+}
+
 #[cfg(test)]
 mod tests {
     use reikna::prime::{is_prime, next_prime};
@@ -100,7 +186,7 @@ mod tests {
         let mut p = 0;
         for _ in 0..1000 {
             p = next_prime(p);
-            while let Some(n) = wheel.next() {
+            for n in wheel.by_ref() {
                 if n == p as u128 {
                     break;
                 }
@@ -119,7 +205,7 @@ mod tests {
         let mut p = 0;
         for _ in 0..1000 {
             p = next_prime(p);
-            while let Some(n) = wheel.next() {
+            for n in wheel.by_ref() {
                 if n == p as u128 {
                     break;
                 }

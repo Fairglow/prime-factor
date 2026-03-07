@@ -16,9 +16,8 @@ fn main() {
         .arg(Arg::new("number")
             .num_args(1..)
             .required(true)
-            .number_of_values(1)
             .value_name("NUMBER")
-            .help("One or more numbers or ranges (inclusive)"))
+            .help("One or more numbers or ranges (e.g., 42, 100..200)"))
         .get_matches();
     env_logger::init();
     info!("Welcome to Prime factorizer");
@@ -26,34 +25,26 @@ fn main() {
     let numstr_vec: ValuesRef<String> = args.get_many("number").unwrap();
     let mut range_vec: Vec<RangeInclusive<u128>> = Vec::new();
     for numstr in numstr_vec {
-        let mut no_range = true;
-        for range_sep in ["-", ".."].iter() {
-            if let Some(pos) = numstr.find(range_sep) {
-                let after = pos + range_sep.len();
-                debug!("Split '{}' into '{}' and '{}'",
-                    numstr, &numstr[..pos], &numstr[after..]);
-                let beg = numstr[..pos].parse::<u128>().unwrap();
-                let end = numstr[after..].parse::<u128>().unwrap();
-                range_vec.push(beg..=end);
-                no_range = false;
-                break;
-            }
-        }
-        if no_range {
-            let n: u128 = numstr.parse::<u128>().unwrap();
+        if let Some((left, right)) = numstr.split_once("..") {
+            debug!("Split '{numstr}' into '{left}' and '{right}'");
+            let beg = left.parse::<u128>().expect("invalid range start");
+            let end = right.parse::<u128>().expect("invalid range end");
+            range_vec.push(beg..=end);
+        } else {
+            let n = numstr.parse::<u128>().expect("invalid number");
             range_vec.push(n..=n);
         }
     }
     for rng in range_vec {
-        let par_iter: Vec<_> = rng.into_par_iter().map(|n| {
-            let factors = PrimeFactors::from(n);
+        let results: Vec<_> = rng.into_par_iter().map(|n| {
+            let factors = PrimeFactors::factorize(n);
             if factors.is_prime() {
                 format!("{n} is prime!")
             } else {
                 format!("{n} = {factors}")
             }
         }).collect();
-        for outstr in par_iter { println!("{outstr}"); }
+        for line in results { println!("{line}"); }
     }
 }
 

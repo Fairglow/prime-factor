@@ -3,10 +3,11 @@
 pub mod candidates;
 
 use std::cmp::{min, Ordering};
-use std::convert::From;
 use std::fmt;
 use candidates::PrimeWheel210 as PrimeWheel;
+use candidates::{is_prime_candidate, miller_rabin};
 
+/// A prime factor with its exponent (e.g., 2^3 means integer=2, exponent=3).
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct IntFactor {
     pub integer: u128,
@@ -14,6 +15,7 @@ pub struct IntFactor {
 }
 
 impl IntFactor {
+    #[must_use]
     pub fn to_vec(&self) -> Vec<u128> {
         vec![self.integer; self.exponent as usize]
     }
@@ -29,6 +31,8 @@ impl fmt::Display for IntFactor {
     }
 }
 
+/// The prime factorization of an integer, represented as a list of
+/// prime factors with their exponents.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct PrimeFactors {
     factors: Vec<IntFactor>
@@ -41,29 +45,40 @@ impl PrimeFactors {
     fn add(&mut self, integer: u128, exponent: u32) {
         self.factors.push(IntFactor { integer, exponent })
     }
+    /// Reconstruct the original integer from its prime factorization.
+    #[must_use]
     pub fn value(&self) -> u128 {
         self.factors.iter().map(|f| f.integer.pow(f.exponent)).product()
     }
+    /// Return the number of distinct prime factors.
+    #[must_use]
     pub fn len(&self) -> usize {
         self.factors.len()
     }
+    /// Return the total number of prime factors (counting multiplicities).
+    #[must_use]
     pub fn count_factors(&self) -> u32 {
         self.factors.iter().map(|f| f.exponent).sum()
     }
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.factors.is_empty()
     }
+    #[must_use]
     pub fn is_prime(&self) -> bool {
         self.count_factors() == 1
     }
-    pub fn to_factor_vec(&self) -> &Vec<IntFactor> {
+    /// Return a slice of the prime factors with exponents.
+    #[must_use]
+    pub fn factors(&self) -> &[IntFactor] {
         &self.factors
     }
+    /// Expand the factorization into a flat vector of prime factors.
+    #[must_use]
     pub fn to_vec(&self) -> Vec<u128> {
-        let mut ret = Vec::new();
-        self.factors.iter().for_each(|f| ret.extend(f.to_vec()));
-        ret
+        self.factors.iter().flat_map(IntFactor::to_vec).collect()
     }
+    #[must_use]
     pub fn gcd(&self, other: &PrimeFactors) -> PrimeFactors {
         let mut pf = PrimeFactors::new();
         if self.is_empty() || other.is_empty() { return pf; }
@@ -72,25 +87,25 @@ impl PrimeFactors {
         let mut s = s_it.next().unwrap();
         let mut o = o_it.next().unwrap();
         loop {
-            let prime_cmp = s.integer.cmp(&o.integer);
-            if prime_cmp == Ordering::Equal {
-                pf.add(s.integer, min(o.exponent, s.exponent));
-            }
-            match prime_cmp {
-                Ordering::Less | Ordering::Equal => {
-                    if let Some(n) = s_it.next() { s = n; } else { break; }
-                },
+            match s.integer.cmp(&o.integer) {
+                Ordering::Equal => {
+                    pf.add(s.integer, min(o.exponent, s.exponent));
+                    s = match s_it.next() { Some(n) => n, None => break };
+                    o = match o_it.next() { Some(n) => n, None => break };
+                }
+                Ordering::Less => {
+                    s = match s_it.next() { Some(n) => n, None => break };
+                }
                 Ordering::Greater => {
-                    if let Some(n) = o_it.next() { o = n; } else { break; }
-                },
+                    o = match o_it.next() { Some(n) => n, None => break };
+                }
             }
         }
         pf
     }
-}
-
-impl From<u128> for PrimeFactors {
-    fn from(n: u128) -> Self {
+    /// Compute the prime factorization of n using wheel factorization.
+    #[must_use]
+    pub fn factorize(n: u128) -> Self {
         let mut pf = PrimeFactors::new();
         if n < 2 { return pf; }
         // A factor of n must have a value less than or equal to sqrt(n)
@@ -132,7 +147,7 @@ impl fmt::Display for PrimeFactors {
     }
 }
 
-/// IntFactor interator
+/// Iterate over the prime factors with their exponents.
 impl<'a> IntoIterator for &'a PrimeFactors {
     type Item = &'a IntFactor; // Items yielded by the iterator will be references
     type IntoIter = std::slice::Iter<'a, IntFactor>; // Use a slice iterator
@@ -142,31 +157,40 @@ impl<'a> IntoIterator for &'a PrimeFactors {
     }
 }
 
-/// Test if the value is a prime number, or not
+/// Test if the value is a prime number.
+///
+/// Uses deterministic Miller-Rabin for numbers below 3,317,044,064,679,887,385,961,981
+/// (proven correct). For larger values, Miller-Rabin is used as a fast composite
+/// filter (it has no false negatives), and any candidate that passes is verified
+/// via trial-division factorization — guaranteeing correctness for all u128.
+///
+/// Note: for very large primes (above the Miller-Rabin threshold), the
+/// factorization fallback may be slow.
+#[must_use]
 pub fn u128_is_prime(n: u128) -> bool {
-    // A factor of n must have a value less than or equal to sqrt(n)
-    let pw_iter = PrimeWheel::new();
-    for f in pw_iter {
-        if f * f > n {
-            break;
-        }
-        if n.is_multiple_of(f) {
-            return false;
-        }
+    if n < 2 { return false; }
+    if !is_prime_candidate(n) { return false; }
+    if n < 3_317_044_064_679_887_385_961_981 {
+        return miller_rabin(n);
     }
-    true
+    // MR has no false negatives: if it says composite, it is composite.
+    if !miller_rabin(n) { return false; }
+    // Verify with guaranteed-correct trial-division factorization.
+    PrimeFactors::factorize(n).is_prime()
 }
 
-/// Calculate the Greatest common divisor (GCD) between 2 unsigned integers
+/// Calculate the Greatest common divisor (GCD) between 2 unsigned integers.
+#[must_use]
 pub fn primefactor_gcd(this: u128, that: u128) -> PrimeFactors {
-    let pf_this = PrimeFactors::from(this);
-    let pf_that = PrimeFactors::from(that);
+    let pf_this = PrimeFactors::factorize(this);
+    let pf_that = PrimeFactors::factorize(that);
     pf_this.gcd(&pf_that)
 }
 
 /// Calculate the Greatest common divisor (GCD) between 2 unsigned integers.
 /// Based on Euclid's algorithm pseudo code at:
-/// https://en.wikipedia.org/wiki/Euclidean_algorithm
+/// <https://en.wikipedia.org/wiki/Euclidean_algorithm>
+#[must_use]
 pub fn u128_gcd(this: u128, that: u128) -> u128 {
     let mut a = this;
     let mut b = that;
@@ -178,9 +202,10 @@ pub fn u128_gcd(this: u128, that: u128) -> u128 {
     a
 }
 
-/// Calculate the Least common multiple (LCM) for 2 integers
+/// Calculate the Least common multiple (LCM) for 2 integers.
+#[must_use]
 pub fn u128_lcm(this: u128, that: u128) -> u128 {
     if this == 0 && that == 0 { return 0; }
     let gcd = u128_gcd(this, that);
-    this * that / gcd
+    this / gcd * that
 }

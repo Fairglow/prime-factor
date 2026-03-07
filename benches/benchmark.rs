@@ -7,9 +7,9 @@ fn num_str(n: u64) -> String {
     let units = ["", "ki", "Mi", "Gi", "Ti", "Pi", "Ei"];
     let mask = (1 << 10) - 1;
     let mut r = n;
-    for u in 0..units.len() {
+    for unit in &units {
         if r & mask > 0 {
-            return format!("{}{}", r, units[u]);
+            return format!("{r}{unit}");
         }
         r >>= 10;
     }
@@ -17,7 +17,7 @@ fn num_str(n: u64) -> String {
 }
 
 fn pf_number(n: u128) {
-    let _ = PrimeFactors::from(n);
+    let _ = PrimeFactors::factorize(n);
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
