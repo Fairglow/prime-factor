@@ -1,18 +1,38 @@
+//! There are many functions that can produce prime number candidates, but only
+//! a few that are guaranteed to produce all primes.
+//!
 //! Implementations of Prime wheels for number factorization
 //! https://en.wikipedia.org/wiki/Wheel_factorization
+//!
+//! We can omit the overflow bounds checks for the wheel iterators, since they
+//! are only used to generate prime candidates and the highest prime candidate
+//! is much smaller than the u128 limit. The wheel iterators will stop before
+//! the square root of the maximum u128 value, which is approximately 1.15e19.
+//!
 #![allow(dead_code)]
 
 /// Wheel factorization algorithm with base {2, 3, 5} (30 spokes)
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct PrimeWheel30 {
     base: u128,
-    first: usize,
     index: usize,
 }
 
 impl PrimeWheel30 {
-    const FIRSTS: [u128; 3] = [2, 3, 5];
-    const SPOKES: [u128; 8] = [7, 11, 13, 17, 19, 23, 29, 31];
+    const GAPS: [u128; 12] = [
+        2, // +2 = 2
+        1, // +1 = 3
+        2, // +2 = 5
+        2, // +2 = 7 (index 3, end of initial phase)
+        4, // +4 = 11 + n * 30 (index 4, start of cycle)
+        2, // +2 = 13 + n * 30
+        4, // +4 = 17 + n * 30
+        2, // +2 = 19 + n * 30
+        4, // +4 = 23 + n * 30
+        6, // +6 = 29 + n * 30
+        2, // +2 = 31 + n * 30
+        6  // +6 = 37 + n * 30 (index 11, end of cycle)
+    ];
     pub fn new() -> Self {
         Self::default()
     }
@@ -20,22 +40,16 @@ impl PrimeWheel30 {
 
 impl Iterator for PrimeWheel30 {
     type Item = u128;
+
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
-        if self.first < Self::FIRSTS.len() {
-            let n = Self::FIRSTS[self.first];
-            self.first += 1;
-            Some(n)
-        } else if self.base == 87841638446235960 && self.index > 2 {
-            None
-        } else if self.index < Self::SPOKES.len() {
-            let n = self.base + Self::SPOKES[self.index];
-            self.index += 1;
-            Some(n)
-        } else {
-            self.base += 30;
-            self.index = 1;
-            Some(self.base + Self::SPOKES[0])
+        let gap = Self::GAPS.get(self.index)?;
+        self.base += gap; 
+        self.index += 1;
+        if self.index == 12 {
+            self.index = 4;
         }
+        Some(self.base)
     }
 }
 
@@ -43,17 +57,17 @@ impl Iterator for PrimeWheel30 {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct PrimeWheel210 {
     base: u128,
-    first: usize,
     index: usize,
 }
 
 impl PrimeWheel210 {
-    const FIRSTS: [u128; 4] = [2, 3, 5, 7];
-    const SPOKES: [u128; 48] = [
-        11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73,
-        79, 83, 89, 97, 101, 103, 107, 109, 113, 121, 127, 131, 137, 139, 143,
-        149, 151, 157, 163, 167, 169, 173, 179, 181, 187, 191, 193, 197, 199,
-        209, 211];
+    const GAPS: [u128; 53] = [
+        2, 1, 2, 2, 4, // initial phase: 2, 3, 5, 7, 11 (index 0-4)
+        2, 4, 2, 4, 6, 2, 6, 4, 2, 4, 6, 6, 2, 6, 4, // 13..71 (index 5, start of cycle)
+        2, 6, 4, 6, 8, 4, 2, 4, 2, 4, 8, 6, 4, 6, 2, 4, // 73..143
+        6, 2, 6, 6, 4, 2, 4, 6, 2, 6, 4, 2, 4, 2, 10, 2, // 149..211
+        10 // 221 + n * 210 (index 52, end of cycle, wraps to index 5)
+    ];
     pub fn new() -> Self {
         Self::default()
     }
@@ -61,77 +75,87 @@ impl PrimeWheel210 {
 
 impl Iterator for PrimeWheel210 {
     type Item = u128;
+
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
-        if self.first < Self::FIRSTS.len() {
-            let n = Self::FIRSTS[self.first];
-            self.first += 1;
-            Some(n)
-        } else if self.base == 87841638446235960 && self.index > 1 {
-            None
-        } else if self.index < Self::SPOKES.len() {
-            let n = self.base + Self::SPOKES[self.index];
-            self.index += 1;
-            Some(n)
-        } else {
-            self.base += 210;
-            self.index = 1;
-            Some(self.base + Self::SPOKES[0])
+        let gap = Self::GAPS.get(self.index)?;
+        self.base += gap;
+        self.index += 1;
+        if self.index == 53 {
+            self.index = 5;
         }
-    }
-}
-
-// Bit-map: 0x0200a2_88282288_20a08a08_820228a2_02088288_28208a20_a08a2802
-const PW210_BITMAP_B: [u8; 27] = [
-    0x02, 0x28, 0x8a, 0xa0, 0x20, 0x8a, 0x20, 0x28,
-    0x88, 0x82, 0x08, 0x02, 0xa2, 0x28, 0x02, 0x82,
-    0x08, 0x8a, 0xa0, 0x20, 0x88, 0x22, 0x28, 0x88,
-    0xa2, 0x00, 0x02];
-
-pub fn is_pw210_candidate_b(num: u128) -> bool {
-    if num < 11 {
-        matches!(num, 2 | 3 | 5 | 7)
-    } else {
-        let index = (num % 210) as usize; // Calculate bit position (0 to 209)
-        let byte_index = index / 8; // Calculate byte index within the array
-        let bit_mask = 1 << (index % 8); // Calculate bit-mask within the byte
-        PW210_BITMAP_B[byte_index] & bit_mask > 0
-    }
-}
-
-const PW210_BITMAP_32: [u32; 7] = [
-    0xa08a2802,
-    0x28208a20,
-    0x02088288,
-    0x820228a2,
-    0x20a08a08,
-    0x88282288,
-    0x000200a2,
-];
-
-pub fn is_pw210_candidate(num: u128) -> bool {
-    if num < 11 {
-        matches!(num, 2 | 3 | 5 | 7)
-    } else {
-        let index = (num % 210) as usize;  // Calculate bit position (0 to 209)
-        let dword_index = index / 32;      // Calculate dword index
-        let bit_mask = 1 << (index & 0x1F); // Calculate bit-mask
-        PW210_BITMAP_32[dword_index] & bit_mask > 0
+        Some(self.base)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{PrimeWheel210, is_pw210_candidate, is_pw210_candidate_b};
+    use reikna::prime::{is_prime, next_prime};
+    use super::{PrimeWheel30, PrimeWheel210};
+
     #[test]
-    fn test_spokes() {
-        (8..212).for_each(|n| {
-            assert_eq!(PrimeWheel210::SPOKES.contains(&n), is_pw210_candidate(n));
-        });
-    }
-    #[test]
-    fn test_bitmaps() {
-        for n in 0..210 {
-            assert_eq!(is_pw210_candidate(n), is_pw210_candidate_b(n));
+    fn test_prime_wheel_30_first_1000() {
+        let mut wheel = PrimeWheel30::new();
+        let mut misses = 0;
+        let mut p = 0;
+        for _ in 0..1000 {
+            p = next_prime(p);
+            while let Some(n) = wheel.next() {
+                if n == p as u128 {
+                    break;
+                }
+                assert!(!is_prime(n as u64));
+                misses += 1;
+            }
         }
+        // Assert the exact number of expected misses for the first 100 primes
+        assert_eq!(misses, 1114);
+    }
+
+    #[test]
+    fn test_prime_wheel_210_first_1000() {
+        let mut wheel = PrimeWheel210::new();
+        let mut misses = 0;
+        let mut p = 0;
+        for _ in 0..1000 {
+            p = next_prime(p);
+            while let Some(n) = wheel.next() {
+                if n == p as u128 {
+                    break;
+                }
+                assert!(!is_prime(n as u64));
+                misses += 1;
+            }
+        }
+        // Assert the exact number of expected misses for the first 1000 primes
+        assert_eq!(misses, 813);
+    }
+
+    #[test]
+    fn test_prime_wheel_30_quality() {
+        const TOTAL: u128 = 1000000;
+        let mut primes: u128 = 0;
+        let pw_iter = PrimeWheel30::new();
+        for p in pw_iter.take(TOTAL as usize) {
+            primes += is_prime(p as u64) as u128;
+        }
+        let percent = primes as f64 / TOTAL as f64 * 100.0;
+        println!("Prime wheel generated {}/{} ({:.3}%) primes",
+                primes, TOTAL, percent);
+        assert!(percent > 25.0);
+    }
+
+    #[test]
+    fn test_prime_wheel_210_quality() {
+        const TOTAL: u128 = 1000000;
+        let mut primes: u128 = 0;
+        let pw_iter = PrimeWheel210::new();
+        for p in pw_iter.take(TOTAL as usize) {
+            primes += is_prime(p as u64) as u128;
+        }
+        let percent = primes as f64 / TOTAL as f64 * 100.0;
+        println!("Prime wheel generated {}/{} ({:.3}%) primes",
+                primes, TOTAL, percent);
+        assert!(percent > 30.0);
     }
 }

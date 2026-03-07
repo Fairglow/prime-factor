@@ -5,7 +5,7 @@ pub mod candidates;
 use std::cmp::{min, Ordering};
 use std::convert::From;
 use std::fmt;
-use candidates::{is_pw210_candidate, PrimeWheel210};
+use candidates::PrimeWheel210 as PrimeWheel;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct IntFactor {
@@ -96,7 +96,7 @@ impl From<u128> for PrimeFactors {
         // A factor of n must have a value less than or equal to sqrt(n)
         let mut maxsq = n;
         let mut x = n;
-        let pw_iter = PrimeWheel210::new();
+        let pw_iter = PrimeWheel::new();
         for f in pw_iter {
             if f * f > maxsq {
                 break;
@@ -144,11 +144,8 @@ impl<'a> IntoIterator for &'a PrimeFactors {
 
 /// Test if the value is a prime number, or not
 pub fn u128_is_prime(n: u128) -> bool {
-    if !is_pw210_candidate(n) {
-        return false;
-    }
     // A factor of n must have a value less than or equal to sqrt(n)
-    let pw_iter = PrimeWheel210::new();
+    let pw_iter = PrimeWheel::new();
     for f in pw_iter {
         if f * f > n {
             break;
