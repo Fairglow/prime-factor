@@ -25,14 +25,18 @@ fn main() {
     let numstr_vec: ValuesRef<String> = args.get_many("number").unwrap();
     let mut range_vec: Vec<RangeInclusive<u128>> = Vec::new();
     for numstr in numstr_vec {
-        if let Some((left, right)) = numstr.split_once("..=")
-            .or_else(|| numstr.split_once(".."))
-        {
-            debug!("Split '{numstr}' into '{left}' and '{right}'");
+        if let Some((left, right)) = numstr.split_once("..=") {
+            debug!("Split '{numstr}' into '{left}' and '{right}' (inclusive)");
             let beg = left.parse::<u128>().expect("invalid range start");
             let end = right.parse::<u128>().expect("invalid range end");
             assert!(beg <= end, "invalid range: start ({beg}) must be <= end ({end})");
             range_vec.push(beg..=end);
+        } else if let Some((left, right)) = numstr.split_once("..") {
+            debug!("Split '{numstr}' into '{left}' and '{right}' (exclusive end)");
+            let beg = left.parse::<u128>().expect("invalid range start");
+            let end = right.parse::<u128>().expect("invalid range end");
+            assert!(beg < end, "empty or invalid range: {beg}..{end}");
+            range_vec.push(beg..=(end - 1));
         } else {
             let n = numstr.parse::<u128>().expect("invalid number");
             range_vec.push(n..=n);

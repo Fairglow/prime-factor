@@ -2,7 +2,7 @@
 
 [![Rust](https://github.com/Fairglow/prime-factor/actions/workflows/rust.yml/badge.svg)](https://github.com/Fairglow/prime-factor/actions/workflows/rust.yml)
 
-The library will calculate all the prime number factors of any 128-bit unsigned integer. These are the prime factors that, when multiplied together with their multiplicities, reconstruct the original number. You can use the included application to play around with it.
+The library will calculate all the prime number factors of any 128-bit unsigned integer (see [Limitations](#limitations--practical-performance) for large inputs). These are the prime factors that, when multiplied together with their multiplicities, reconstruct the original number. You can use the included application to play around with it.
 
 ## Memory efficiency
 
@@ -24,7 +24,7 @@ We want this iterator to be fast and give reasonably good guesses for prime numb
 
 ## Factorization performance
 
-Modern system (i7-12700) with a 210-spoke Prime Wheel:
+Worst-case numbers (primes) on a modern system (i7-12700) with a 210-spoke Prime Wheel:
 
 | Bitsize | Average Time |  Fastest |  Slowest |
 |--------:|-------------:|---------:|---------:|

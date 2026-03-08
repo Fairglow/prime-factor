@@ -46,6 +46,7 @@ impl PrimeFactors {
         self.factors.push(IntFactor { integer, exponent })
     }
     /// Reconstruct the original integer from its prime factorization.
+    /// An empty factorization yields 1 (the empty product).
     #[must_use]
     pub fn value(&self) -> u128 {
         self.factors.iter().map(|f| f.integer.pow(f.exponent)).product()
@@ -78,6 +79,8 @@ impl PrimeFactors {
     pub fn to_vec(&self) -> Vec<u128> {
         self.factors.iter().flat_map(IntFactor::to_vec).collect()
     }
+    /// Compute the GCD of two prime factorizations by intersecting common factors.
+    /// Returns an empty result if either factorization is empty.
     #[must_use]
     pub fn gcd(&self, other: &PrimeFactors) -> PrimeFactors {
         let mut pf = PrimeFactors::new();
@@ -102,6 +105,22 @@ impl PrimeFactors {
             }
         }
         pf
+    }
+    /// Check if n has any non-trivial factor using wheel factorization.
+    /// Returns true as soon as any factor is found, without full decomposition.
+    #[must_use]
+    pub fn has_any_factor(n: u128) -> bool {
+        if n < 4 { return false; }
+        let pw_iter = PrimeWheel::new();
+        for f in pw_iter {
+            if f * f > n {
+                return false;
+            }
+            if n.is_multiple_of(f) {
+                return true;
+            }
+        }
+        false
     }
     /// Compute the prime factorization of n using wheel factorization.
     #[must_use]
@@ -167,6 +186,40 @@ impl IntoIterator for PrimeFactors {
     }
 }
 
+/// An iterator that yields prime numbers in ascending order.
+/// Uses wheel factorization to generate candidates, filtering
+/// with Miller-Rabin (when available) for fast primality testing.
+#[derive(Clone, Debug)]
+pub struct PrimeNumbers {
+    wheel: PrimeWheel,
+}
+
+impl PrimeNumbers {
+    #[must_use]
+    pub fn new() -> Self {
+        Self { wheel: PrimeWheel::new() }
+    }
+    /// Create an iterator that yields primes >= `start`.
+    #[must_use]
+    pub fn from(start: u128) -> Self {
+        Self { wheel: PrimeWheel::from(start) }
+    }
+}
+
+impl Default for PrimeNumbers {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Iterator for PrimeNumbers {
+    type Item = u128;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.wheel.by_ref().find(|&n| u128_is_prime(n))
+    }
+}
+
 /// Test if the value is a prime number.
 ///
 /// Uses deterministic Miller-Rabin for numbers below 3,317,044,064,679,887,385,961,981
@@ -184,13 +237,33 @@ pub fn u128_is_prime(n: u128) -> bool {
     }
     // MR has no false negatives: if it says composite, it is composite.
     if !miller_rabin(n) { return false; }
-    // Verify with guaranteed-correct trial-division factorization.
-    PrimeFactors::factorize(n).is_prime()
+    // Verify with guaranteed-correct trial division: if any factor
+    // exists, n is composite. Stops at the first factor found.
+    !PrimeFactors::has_any_factor(n)
 }
 
-/// Calculate the Greatest common divisor (GCD) between 2 unsigned integers.
+/// Return the smallest prime >= n.
+///
+/// Uses the [`PrimeNumbers`] iterator starting from `n`.
+#[must_use]
+pub fn next_prime(n: u128) -> u128 {
+    PrimeNumbers::from(n).next().unwrap()
+}
+
+/// Calculate the Greatest common divisor (GCD) between 2 unsigned integers,
+/// returned as a prime factorization.
+///
+/// Handles the identity gcd(0, n) = n by returning the other value's
+/// factorization. Since gcd(0, 0) = 0 has no prime factorization, it
+/// returns an empty result. For a simpler numeric GCD, use [`u128_gcd`].
 #[must_use]
 pub fn primefactor_gcd(this: u128, that: u128) -> PrimeFactors {
+    if this == 0 {
+        return PrimeFactors::factorize(that);
+    }
+    if that == 0 {
+        return PrimeFactors::factorize(this);
+    }
     let pf_this = PrimeFactors::factorize(this);
     let pf_that = PrimeFactors::factorize(that);
     pf_this.gcd(&pf_that)

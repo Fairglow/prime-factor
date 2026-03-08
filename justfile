@@ -18,6 +18,9 @@ build:
 outdated:
     cargo outdated --depth=1
 
+reikna:
+    cargo bench --bench bench-reikna --features bench-reikna
+
 release:
     cargo build --release
 

@@ -9,7 +9,10 @@
 //! In `factorize`, the iterator is only consumed up to sqrt(n), which for
 //! the maximum u128 value is approximately 1.84e19.
 //!
-/// Wheel factorization algorithm with base {2, 3, 5} (30 spokes)
+/// Wheel factorization algorithm with base {2, 3, 5} (30 spokes).
+///
+/// This is an infinite iterator; callers must provide a termination condition.
+/// It is designed for use in trial division up to √n.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct PrimeWheel30 {
     base: u128,
@@ -51,7 +54,10 @@ impl Iterator for PrimeWheel30 {
     }
 }
 
-/// Wheel factorization algorithm with base {2, 3, 5, 7} (210 spokes)
+/// Wheel factorization algorithm with base {2, 3, 5, 7} (210 spokes).
+///
+/// This is an infinite iterator; callers must provide a termination condition.
+/// It is designed for use in trial division up to √n.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct PrimeWheel210 {
     base: u128,
@@ -68,6 +74,37 @@ impl PrimeWheel210 {
     ];
     pub fn new() -> Self {
         Self::default()
+    }
+    /// Create a wheel that will yield candidates >= `start`.
+    /// The first call to `next()` returns the first candidate at or above `start`.
+    pub fn from(start: u128) -> Self {
+        if start <= 2 {
+            return Self::default();
+        }
+        // For small starts, walk through the initial phase
+        if start <= 11 {
+            let mut base: u128 = 0;
+            for (i, &gap) in Self::GAPS.iter().enumerate().take(5) {
+                if base + gap >= start {
+                    return Self { base, index: i };
+                }
+                base += gap;
+            }
+            return Self { base: 7, index: 4 };
+        }
+        // Jump into the correct 210-cycle.
+        // Each cycle starts at base = 11 + k*210 and produces candidates
+        // from base+2 up to base+210 (48 candidates spanning 210 values).
+        let k = start.saturating_sub(13) / 210;
+        let mut pos = 11 + k * 210;
+        for (i, &gap) in Self::GAPS[5..].iter().enumerate() {
+            if pos + gap >= start {
+                return Self { base: pos, index: i + 5 };
+            }
+            pos += gap;
+        }
+        // All candidates in this cycle are below start; use next cycle
+        Self { base: pos, index: 5 }
     }
 }
 
@@ -136,8 +173,6 @@ fn add_mod(a: u128, b: u128, m: u128) -> u128 {
 /// Modular multiplication: (a * b) mod m, without overflow.
 /// Uses direct multiplication when the product fits in u128.
 /// For larger products, it uses Russian peasant multiplication.
-/// When m <= 2^127, it uses a faster doubling path; otherwise it switches
-/// to an overflow-safe modular addition path.
 #[inline]
 fn mod_mul(a: u128, b: u128, m: u128) -> u128 {
     debug_assert!(m > 0);
@@ -230,7 +265,7 @@ mod tests {
                 misses += 1;
             }
         }
-        // Assert the exact number of expected misses for the first 100 primes
+        // Assert the exact number of expected misses for the first 1000 primes
         assert_eq!(misses, 1114);
     }
 
@@ -323,6 +358,88 @@ mod tests {
         for (a, b, expected) in cases {
             assert_eq!(mod_mul(a, b, m), expected);
             assert_eq!(mod_mul(b, a, m), expected);
+        }
+    }
+
+    #[test]
+    fn test_prime_wheel_210_from_matches_new() {
+        // from(0), from(1), from(2) should all behave like new()
+        for start in [0, 1, 2] {
+            let from_iter: Vec<u128> = PrimeWheel210::from(start).take(200).collect();
+            let new_iter: Vec<u128> = PrimeWheel210::new().take(200).collect();
+            assert_eq!(from_iter, new_iter, "from({start}) differs from new()");
+        }
+    }
+
+    #[test]
+    fn test_prime_wheel_210_from_initial_primes() {
+        // Starting at each small prime should yield that prime first
+        for &p in &[2u128, 3, 5, 7, 11] {
+            let first = PrimeWheel210::from(p).next().unwrap();
+            assert_eq!(first, p, "from({p}) should yield {p} first");
+        }
+    }
+
+    #[test]
+    fn test_prime_wheel_210_from_never_skips_candidates() {
+        // For every starting point 0..=500, verify that from(start)
+        // yields a subset of new()'s output, starting at the right place
+        let all: Vec<u128> = PrimeWheel210::new().take(2000).collect();
+        for start in 0..=500 {
+            let first = match PrimeWheel210::from(start).next() {
+                Some(v) => v,
+                None => continue,
+            };
+            assert!(first >= start,
+                "from({start}) yielded {first} which is below start");
+            // The first value must appear in the full sequence
+            let pos = all.iter().position(|&v| v == first)
+                .unwrap_or_else(|| panic!(
+                    "from({start}) yielded {first} not in wheel sequence"));
+            // All subsequent values must match the full sequence
+            let from_vals: Vec<u128> = PrimeWheel210::from(start).take(50).collect();
+            assert_eq!(from_vals, all[pos..pos + 50],
+                "from({start}) sequence diverges from new() at offset {pos}");
+        }
+    }
+
+    #[test]
+    fn test_prime_wheel_210_from_at_cycle_boundaries() {
+        // Test at exact 210-block boundaries
+        let all: Vec<u128> = PrimeWheel210::new().take(5000).collect();
+        for block in [1u128, 2, 5, 10, 100, 1000] {
+            let boundary = block * 210;
+            for offset in [0, 1, 2, 209, 210, 211] {
+                let start = boundary + offset;
+                let first = PrimeWheel210::from(start).next().unwrap();
+                assert!(first >= start,
+                    "from({start}) yielded {first} below start");
+                if first < *all.last().unwrap() {
+                    assert!(all.contains(&first),
+                        "from({start}): {first} not a wheel candidate");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_prime_wheel_210_from_finds_all_primes() {
+        // Verify that starting from various points, we don't miss any primes
+        for start in [0u128, 1, 13, 100, 210, 211, 420, 1000, 10000] {
+            let mut wheel = PrimeWheel210::from(start);
+            let mut p = if start <= 2 { 0 } else { (start - 1) as u64 };
+            // Check the next 100 primes from this starting point
+            for _ in 0..100 {
+                p = next_prime(p);
+                if (p as u128) < start { continue; }
+                for n in wheel.by_ref() {
+                    if n == p as u128 {
+                        break;
+                    }
+                    assert!(!is_prime(n as u64),
+                        "from({start}): wheel candidate {n} is prime but was skipped");
+                }
+            }
         }
     }
 }

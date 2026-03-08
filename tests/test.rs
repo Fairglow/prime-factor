@@ -1,26 +1,26 @@
-#[allow(unused_imports)]
 use rand::RngExt;
 use rayon::prelude::*;
 use primefactor::{
     primefactor_gcd,
     PrimeFactors,
+    PrimeNumbers,
     u128_gcd,
     u128_is_prime,
     u128_lcm};
 use reikna::prime::{is_prime, nth_prime};
 
 #[test]
-fn test_is_prime() {
+fn test_10k_random_32bit_numbers() {
     let mut rnd = rand::rng();
     for _ in 0..10000 {
-        let n = rnd.random_range(2..u32::MAX);
+        let n = rnd.random_range(0..=u32::MAX);
         assert_eq!(u128_is_prime(n as u128), is_prime(n as u64), "is num {n} prime?");
     }
 }
 
 #[test]
-fn test_some_primes() {
-    for num in 0..=10000 {
+fn test_first_5k_primes() {
+    for num in 0..=5000 {
         let p = nth_prime(num);
         assert!(u128_is_prime(p as u128), "is num {p} prime?");
     }
@@ -30,7 +30,7 @@ fn test_some_primes() {
 fn test_some_factors() {
     let mut rnd = rand::rng();
     for _ in 0..1000 {
-        let num = rnd.random_range(2..u32::MAX as u128);
+        let num = rnd.random_range(2..=u32::MAX as u128);
         let facts = PrimeFactors::factorize(num);
         assert_eq!(u128_is_prime(num), facts.is_prime());
         if facts.is_prime() {
@@ -55,6 +55,8 @@ fn test_a_few_gcd() {
     assert!(primefactor_gcd(1, 0).is_empty());
     assert!(primefactor_gcd(0, 1).is_empty());
     assert!(primefactor_gcd(0, 0).is_empty());
+    assert_eq!(primefactor_gcd(0, 10), PrimeFactors::factorize(10));
+    assert_eq!(primefactor_gcd(10, 0), PrimeFactors::factorize(10));
     assert_eq!(u128_gcd(2*3*5*7, 2*5*11), 2*5);
     assert_eq!(u128_gcd(3*4*5, 3*4*7), 3*4);
     assert_eq!(u128_gcd(9*4*11, 3*8*13), 3*4);
@@ -69,8 +71,8 @@ fn test_a_few_gcd() {
 fn test_compare_some_gcd() {
     (0..100).into_par_iter().for_each(|_| {
         let mut rnd = rand::rng();
-        let a = rnd.random_range(2..u32::MAX as u128);
-        let b = rnd.random_range(2..u32::MAX as u128);
+        let a = rnd.random_range(2..=u32::MAX as u128);
+        let b = rnd.random_range(2..=u32::MAX as u128);
         let pf_gcd = primefactor_gcd(a, b);
         let ea_gcd = u128_gcd(a, b);
         if pf_gcd.is_empty() {
@@ -98,9 +100,9 @@ fn test_a_few_lcm() {
 fn test_some_gcd_lcm() {
     (0..10).into_par_iter().for_each(|_| {
         let mut rnd = rand::rng();
-        let a = rnd.random_range(2..u32::MAX as u128);
-        let b = rnd.random_range(2..u32::MAX as u128);
-        let c = rnd.random_range(2..u32::MAX as u128);
+        let a = rnd.random_range(2..=u32::MAX as u128);
+        let b = rnd.random_range(2..=u32::MAX as u128);
+        let c = rnd.random_range(2..=u32::MAX as u128);
 
         // Test using the [Fundamental_theorem_of_arithmetic](https://en.wikipedia.org/wiki/Fundamental_theorem_of_arithmetic)
         assert_eq!(u128_gcd(a, b) * u128_lcm(a, b), a * b);
@@ -131,8 +133,8 @@ fn test_some_gcd_lcm() {
 fn test_compare_reikna_gcd_lcm() {
     (0..100).into_par_iter().for_each(|_| {
         let mut rnd = rand::rng();
-        let a = rnd.random_range(2..u32::MAX as u64);
-        let b = rnd.random_range(2..u32::MAX as u64);
+        let a = rnd.random_range(2..=u32::MAX as u64);
+        let b = rnd.random_range(2..=u32::MAX as u64);
         let gcd_r = reikna::factor::gcd(a, b);
         let gcd_t = u128_gcd(a as u128, b as u128) as u64;
         assert_eq!(gcd_r, gcd_t);
@@ -164,13 +166,23 @@ fn test_large_composites_above_mr_threshold() {
     // Even numbers
     assert!(!u128_is_prime(618970019642690137449562112));
     // Squares of large primes
-    assert!(!u128_is_prime(4294967291_u128 * 4294967291_u128 * 4294967291_u128));
+    assert!(!u128_is_prime(4294967291 * 4294967291 * 4294967291));
+}
+
+#[test]
+fn test_prime_numbers_iterator() {
+    let mut iter = PrimeNumbers::new();
+    for i in 0..=10000 {
+        let expected = nth_prime(i) as u128;
+        let got = iter.next().unwrap();
+        assert_eq!(got, expected, "prime #{i}: expected {expected}, got {got}");
+    }
 }
 
 #[test]
 #[ignore] // Very slow: trial-division fallback for primes above the MR threshold
 fn test_large_primes_above_mr_threshold() {
-    assert!(u128_is_prime(618970019642690137449562111));          // 2^89 - 1
-    assert!(u128_is_prime(162259276829213363391578010288127));     // 2^107 - 1
+    assert!(u128_is_prime(618970019642690137449562111));             // 2^89 - 1
+    assert!(u128_is_prime(162259276829213363391578010288127));       // 2^107 - 1
     assert!(u128_is_prime(170141183460469231731687303715884105727)); // 2^127 - 1
 }
