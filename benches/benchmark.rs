@@ -22,13 +22,16 @@ fn pf_number(n: u128) {
 
 fn criterion_benchmark(c: &mut Criterion) {
     const BREAK_PRIME: u128 = 10000019;
-    let count = 1 << 20; // 1Mi
+    let count: u64 = 1 << 10; // 1ki
     for shift in (0..32).step_by(10) {
-        let base = 1 << shift;
+        let base: u128 = 1 << shift;
         let name = format!("prime-factor  {} from {}",
-            num_str(count), num_str(base));
-        c.bench_function(&name, |b| b.iter(||
-            pf_number(base as u128 + black_box(count as u128))));
+            num_str(count), num_str(base as u64));
+        c.bench_function(&name, |b| b.iter(|| {
+            for n in base..base + black_box(count as u128) {
+                pf_number(n);
+            }
+        }));
     }
     let mut pw_grp = c.benchmark_group("prime-wheel");
     pw_grp.sample_size(10);
@@ -73,7 +76,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         (40,   1, 1099511627689),
         (44,   1, 17592186044399),
         (48,   1, 281474976710597),
-        (52,   1, 4503599627370449),
+        (52,   2, 4503599627370449),
         (56,   9, 72057594037927931),
         (60,  36, 1152921504606846883),
         (64,  60, 18446744073709551557),

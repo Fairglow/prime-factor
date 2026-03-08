@@ -108,7 +108,7 @@ impl PrimeFactors {
     pub fn factorize(n: u128) -> Self {
         let mut pf = PrimeFactors::new();
         if n < 2 { return pf; }
-        // A factor of n must have a value less than or equal to sqrt(n)
+        // The smallest prime factor of n must be <= sqrt(n)
         let mut maxsq = n;
         let mut x = n;
         let pw_iter = PrimeWheel::new();
@@ -122,7 +122,7 @@ impl PrimeFactors {
                 c += 1;
             }
             if c > 0 {
-                // A factor of x squared must be less than or equal to x
+                // The smallest prime factor of x must be <= sqrt(x)
                 maxsq = x;
                 pf.add(f, c);
             }
@@ -131,7 +131,7 @@ impl PrimeFactors {
             }
         }
         if x > 1 || pf.is_empty() {
-            // Any remainder must be the number itself or a factor of it.
+            // Any remainder x > 1 must itself be prime.
             pf.add(x, 1);
         }
         pf
@@ -149,11 +149,21 @@ impl fmt::Display for PrimeFactors {
 
 /// Iterate over the prime factors with their exponents.
 impl<'a> IntoIterator for &'a PrimeFactors {
-    type Item = &'a IntFactor; // Items yielded by the iterator will be references
-    type IntoIter = std::slice::Iter<'a, IntFactor>; // Use a slice iterator
+    type Item = &'a IntFactor;
+    type IntoIter = std::slice::Iter<'a, IntFactor>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.factors.iter()  // Create a standard slice iterator
+        self.factors.iter()
+    }
+}
+
+/// Consume and iterate over the prime factors with their exponents.
+impl IntoIterator for PrimeFactors {
+    type Item = IntFactor;
+    type IntoIter = std::vec::IntoIter<IntFactor>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.factors.into_iter()
     }
 }
 

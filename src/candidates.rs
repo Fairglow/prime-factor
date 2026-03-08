@@ -4,13 +4,12 @@
 //! Implementations of Prime wheels for number factorization
 //! https://en.wikipedia.org/wiki/Wheel_factorization
 //!
-//! We can omit the overflow bounds checks for the wheel iterators, since they
-//! are only used to generate prime candidates and the highest prime candidate
-//! is much smaller than the u128 limit. The wheel iterators will stop before
-//! the square root of the maximum u128 value, which is approximately 1.15e19.
+//! We can omit overflow bounds checks for the wheel iterators, since the
+//! callers stop consuming them well before values approach the u128 limit.
+//! In `factorize`, the iterator is only consumed up to sqrt(n), which for
+//! the maximum u128 value is approximately 1.84e19.
 //!
 /// Wheel factorization algorithm with base {2, 3, 5} (30 spokes)
-#[allow(dead_code)]
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct PrimeWheel30 {
     base: u128,
@@ -91,7 +90,7 @@ impl Iterator for PrimeWheel210 {
 /// Returns false for any number divisible by 2, 3, 5, or 7,
 /// eliminating ~77% of all composites with a single modulo + bit-test.
 #[inline(always)]
-pub fn is_prime_candidate(n: u128) -> bool {
+pub(crate) fn is_prime_candidate(n: u128) -> bool {
     if n < 11 {
         return matches!(n, 2 | 3 | 5 | 7);
     }
@@ -185,7 +184,7 @@ fn miller_rabin_witness(n: u128, a: u128, d: u128, r: u32) -> bool {
 /// proven sufficient for all numbers below 3,317,044,064,679,887,385,961,981.
 ///
 /// Reference: <https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test>
-pub fn miller_rabin(n: u128) -> bool {
+pub(crate) fn miller_rabin(n: u128) -> bool {
     const WITNESSES: [u128; 12] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
     debug_assert!(n >= 2);
     let n_minus_1 = n - 1;

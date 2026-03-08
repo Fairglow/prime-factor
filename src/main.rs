@@ -17,7 +17,7 @@ fn main() {
             .num_args(1..)
             .required(true)
             .value_name("NUMBER")
-            .help("One or more numbers or ranges (e.g., 42, 100..200)"))
+            .help("One or more numbers or ranges (e.g., 42, 100..200, 100..=200)"))
         .get_matches();
     env_logger::init();
     info!("Welcome to Prime factorizer");
@@ -25,10 +25,13 @@ fn main() {
     let numstr_vec: ValuesRef<String> = args.get_many("number").unwrap();
     let mut range_vec: Vec<RangeInclusive<u128>> = Vec::new();
     for numstr in numstr_vec {
-        if let Some((left, right)) = numstr.split_once("..") {
+        if let Some((left, right)) = numstr.split_once("..=")
+            .or_else(|| numstr.split_once(".."))
+        {
             debug!("Split '{numstr}' into '{left}' and '{right}'");
             let beg = left.parse::<u128>().expect("invalid range start");
             let end = right.parse::<u128>().expect("invalid range end");
+            assert!(beg <= end, "invalid range: start ({beg}) must be <= end ({end})");
             range_vec.push(beg..=end);
         } else {
             let n = numstr.parse::<u128>().expect("invalid number");
