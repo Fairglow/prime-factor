@@ -36,12 +36,15 @@ fn main() {
         }
     }
     for rng in range_vec {
-        let results: Vec<_> = rng.into_par_iter().map(|n| {
-            let factors = PrimeFactors::factorize(n);
-            if factors.is_prime() {
-                format!("{n} is prime!")
-            } else {
-                format!("{n} = {factors}")
+        let results: Vec<_> = rng.into_par_iter().map(|n| match n {
+            0 | 1 => format!("{n} is neither prime nor composite"),
+            _ => {
+                let factors = PrimeFactors::factorize(n);
+                if factors.is_prime() {
+                    format!("{n} is prime!")
+                } else {
+                    format!("{n} = {factors}")
+                }
             }
         }).collect();
         for line in results { println!("{line}"); }

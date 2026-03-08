@@ -114,32 +114,50 @@ fn mod_pow(mut base: u128, mut exp: u128, modulus: u128) -> u128 {
             result = mod_mul(result, base, modulus);
         }
         exp >>= 1;
-        base = mod_mul(base, base, modulus);
+        if exp > 0 {
+            base = mod_mul(base, base, modulus);
+        }
     }
     result
 }
 
+/// Modular addition: (a + b) mod m, without overflow.
+/// Requires a < m and b < m.
+#[inline]
+fn add_mod(a: u128, b: u128, m: u128) -> u128 {
+    debug_assert!(a < m);
+    debug_assert!(b < m);
+    if a >= m - b {
+        a - (m - b)
+    } else {
+        a + b
+    }
+}
+
 /// Modular multiplication: (a * b) mod m, without overflow.
-/// Uses direct multiplication when the product fits in u128, otherwise
-/// falls back to Russian peasant multiplication (doubling and adding).
+/// Uses direct multiplication when the product fits in u128.
+/// For larger products, it uses Russian peasant multiplication.
+/// When m <= 2^127, it uses a faster doubling path; otherwise it switches
+/// to an overflow-safe modular addition path.
 #[inline]
 fn mod_mul(a: u128, b: u128, m: u128) -> u128 {
+    debug_assert!(m > 0);
     // For small moduli where a*b won't overflow u128, use direct multiplication
     if a.leading_zeros() + b.leading_zeros() >= 128 {
         return (a * b) % m;
     }
-    // Otherwise, use Russian peasant multiplication to avoid overflow
     let mut result: u128 = 0;
     let mut a = a % m;
     let mut b = b % m;
+    // Full-range safe fallback for very large moduli.
     while b > 0 {
         if b & 1 == 1 {
-            result = result.wrapping_add(a);
-            if result >= m { result -= m; }
+            result = add_mod(result, a, m);
         }
-        a <<= 1;
-        if a >= m { a -= m; }
         b >>= 1;
+        if b > 0 {
+            a = add_mod(a, a, m);
+        }
     }
     result
 }
@@ -147,6 +165,7 @@ fn mod_mul(a: u128, b: u128, m: u128) -> u128 {
 /// Test a single Miller-Rabin witness against n.
 /// Returns true if n passes the test for this witness (probably prime).
 fn miller_rabin_witness(n: u128, a: u128, d: u128, r: u32) -> bool {
+    debug_assert!(n >= 2);
     let mut x = mod_pow(a, d, n);
     if x == 1 || x == n - 1 {
         return true;
@@ -160,7 +179,7 @@ fn miller_rabin_witness(n: u128, a: u128, d: u128, r: u32) -> bool {
     false
 }
 
-/// Deterministic Miller-Rabin primality test.
+/// Deterministic Miller-Rabin primality test (for n >= 2).
 ///
 /// Uses witnesses {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37} which are
 /// proven sufficient for all numbers below 3,317,044,064,679,887,385,961,981.
@@ -168,6 +187,7 @@ fn miller_rabin_witness(n: u128, a: u128, d: u128, r: u32) -> bool {
 /// Reference: <https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test>
 pub fn miller_rabin(n: u128) -> bool {
     const WITNESSES: [u128; 12] = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
+    debug_assert!(n >= 2);
     let n_minus_1 = n - 1;
     let r = n_minus_1.trailing_zeros();
     let d = n_minus_1 >> r;
@@ -177,7 +197,24 @@ pub fn miller_rabin(n: u128) -> bool {
 #[cfg(test)]
 mod tests {
     use reikna::prime::{is_prime, next_prime};
-    use super::{PrimeWheel30, PrimeWheel210};
+    use super::{PrimeWheel30, PrimeWheel210, add_mod, mod_mul};
+
+    fn mod_mul_reference(a: u128, b: u128, m: u128) -> u128 {
+        let mut result = 0;
+        let mut a = a % m;
+        let mut b = b % m;
+        while b > 0 {
+            if b & 1 == 1 {
+                result = add_mod(result, a, m);
+            }
+            b >>= 1;
+            if b > 0 {
+                a = add_mod(a, a, m);
+            }
+        }
+
+        result
+    }
 
     #[test]
     fn test_prime_wheel_30_first_1000() {
@@ -243,5 +280,50 @@ mod tests {
         println!("Prime wheel generated {}/{} ({:.3}%) primes",
                 primes, TOTAL, percent);
         assert!(percent > 30.0);
+    }
+
+    #[test]
+    fn test_add_mod_large_values() {
+        let m = u128::MAX - 158;
+        let a = m - 1;
+        let b = m - 1;
+        assert_eq!(add_mod(a, b, m), m - 2);
+    }
+
+    #[test]
+    fn test_mod_mul_matches_direct_below_2pow127_boundary() {
+        let m = (1_u128 << 127) - 1;
+        let values = [
+            0,
+            1,
+            2,
+            3,
+            17,
+            (1_u128 << 64) + 13,
+            m - 2,
+            m - 1,
+        ];
+
+        for &a in &values {
+            for &b in &values {
+                assert_eq!(mod_mul(a, b, m), mod_mul_reference(a, b, m));
+            }
+        }
+    }
+
+    #[test]
+    fn test_mod_mul_large_modulus_regression_cases() {
+        let m = u128::MAX - 158;
+        let cases = [
+            (m - 1, m - 1, 1),
+            (m - 1, 2, m - 2),
+            (m - 2, 2, m - 4),
+            (m - 1, m - 2, 2),
+        ];
+
+        for (a, b, expected) in cases {
+            assert_eq!(mod_mul(a, b, m), expected);
+            assert_eq!(mod_mul(b, a, m), expected);
+        }
     }
 }

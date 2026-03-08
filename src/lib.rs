@@ -168,7 +168,6 @@ impl<'a> IntoIterator for &'a PrimeFactors {
 /// factorization fallback may be slow.
 #[must_use]
 pub fn u128_is_prime(n: u128) -> bool {
-    if n < 2 { return false; }
     if !is_prime_candidate(n) { return false; }
     if n < 3_317_044_064_679_887_385_961_981 {
         return miller_rabin(n);
@@ -205,7 +204,14 @@ pub fn u128_gcd(this: u128, that: u128) -> u128 {
 /// Calculate the Least common multiple (LCM) for 2 integers.
 #[must_use]
 pub fn u128_lcm(this: u128, that: u128) -> u128 {
-    if this == 0 && that == 0 { return 0; }
+    checked_u128_lcm(this, that).expect("u128_lcm overflow")
+}
+
+#[must_use]
+pub fn checked_u128_lcm(this: u128, that: u128) -> Option<u128> {
+    if this == 0 || that == 0 {
+        return Some(0);
+    }
     let gcd = u128_gcd(this, that);
-    this / gcd * that
+    (this / gcd).checked_mul(that)
 }

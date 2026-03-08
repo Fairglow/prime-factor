@@ -60,7 +60,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     fixed_grp.sample_size(10);
     fixed_grp.bench_function("prime-factor   lowest prime: 2", |b| b.iter(||
         pf_number(2)));
-    const FIXED_VEC: [(u8, u64, u128); 17] = [
+    const FIXED_VEC: [(u8, u64, u128); 16] = [
         ( 4,   1, 13),
         ( 8,   1, 251),
         (12,   1, 4093),
@@ -77,7 +77,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         (56,   9, 72057594037927931),
         (60,  36, 1152921504606846883),
         (64,  60, 18446744073709551557),
-        (68, 107, 295147905179352825833),
+//        (68, 200, 295147905179352825833), // too slow, takes a few minutes, so we skip it
     ];
     for (bits, secs, prime) in FIXED_VEC.into_iter() {
         fixed_grp.measurement_time(Duration::new(secs, 0));
