@@ -7,6 +7,16 @@ use std::fmt;
 use candidates::PrimeWheel210 as PrimeWheel;
 use candidates::{is_prime_candidate, miller_rabin};
 
+/// The threshold where Miller-Rabin primality checking becomes faster than
+/// naive trial division. Below this limit, testing wheel candidates up to
+/// the square root takes fewer CPU cycles than MR's modulus exponentiations.
+const MR_TRIAL_DIVISION_CROSSOVER: u128 = 10_000_000;
+
+/// The threshold below which our specific 12-base Miller-Rabin test is
+/// mathematically proven to be 100% accurate (no false positives).
+/// Above this limit, MR operates probabilistically and needs fallback verification.
+const MR_DETERMINISTIC_LIMIT: u128 = 3_317_044_064_679_887_385_961_981;
+
 /// A prime factor with its exponent (e.g., 2^3 means integer=2, exponent=3).
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct IntFactor {
@@ -127,7 +137,14 @@ impl PrimeFactors {
     pub fn factorize(n: u128) -> Self {
         let mut pf = PrimeFactors::new();
         if n < 2 { return pf; }
-        // The smallest prime factor of n must be <= sqrt(n)
+        // --- 1. EARLY EXIT FOR PRIMES ---
+        // If the number itself is prime, we don't need to do any trial division.
+        // This drops the absolute worst-case scenario from hours down to nanoseconds!
+        // We only use MR if n > 10 million where it beats standard division latency.
+        if n > MR_TRIAL_DIVISION_CROSSOVER && u128_is_prime(n) {
+            pf.add(n, 1);
+            return pf;
+        }
         let mut maxsq = n;
         let mut x = n;
         let pw_iter = PrimeWheel::new();
@@ -141,16 +158,22 @@ impl PrimeFactors {
                 c += 1;
             }
             if c > 0 {
-                // The smallest prime factor of x must be <= sqrt(x)
                 maxsq = x;
                 pf.add(f, c);
+                // --- 2. EARLY EXIT FOR INTERMEDIATE PRIMES ---
+                // If we stripped out some factors and the remaining chunk 'x'
+                // is proven prime by Miller-Rabin, we are fully done.
+                if x > MR_TRIAL_DIVISION_CROSSOVER && u128_is_prime(x) {
+                    pf.add(x, 1);
+                    x = 1;
+                    break;
+                }
             }
             if x == 1 {
                 break;
             }
         }
-        if x > 1 || pf.is_empty() {
-            // Any remainder x > 1 must itself be prime.
+        if x > 1 {
             pf.add(x, 1);
         }
         pf
@@ -222,7 +245,7 @@ impl Iterator for PrimeNumbers {
 
 /// Test if the value is a prime number.
 ///
-/// Uses deterministic Miller-Rabin for numbers below 3,317,044,064,679,887,385,961,981
+/// Uses deterministic Miller-Rabin for numbers below `MR_DETERMINISTIC_LIMIT`
 /// (proven correct). For larger values, Miller-Rabin is used as a fast composite
 /// filter (it has no false negatives), and any candidate that passes is verified
 /// via trial-division factorization — guaranteeing correctness for all u128.
@@ -232,7 +255,20 @@ impl Iterator for PrimeNumbers {
 #[must_use]
 pub fn u128_is_prime(n: u128) -> bool {
     if !is_prime_candidate(n) { return false; }
-    if n < 3_317_044_064_679_887_385_961_981 {
+
+    // Trial division by subsequent small primes. Even though the wheel
+    // filters out multiples of 2, 3, 5, and 7, remaining composites are
+    // heavily stripped out by small integer division before hitting the 
+    // much slower Miller-Rabin steps.
+    const SMALL_PRIMES: &[u128] = &[
+        11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97
+    ];
+    for &p in SMALL_PRIMES {
+        if n == p { return true; }
+        if n % p == 0 { return false; }
+    }
+
+    if n < MR_DETERMINISTIC_LIMIT {
         return miller_rabin(n);
     }
     // MR has no false negatives: if it says composite, it is composite.
