@@ -123,6 +123,31 @@ impl Iterator for PrimeWheel210 {
     }
 }
 
+impl PrimeWheel210 {
+    /// Navigate the wheel backward to yield the previous prime candidate.
+    /// This works directly on the internal state without modifying the forward Iterator.
+    /// It returns `None` when attempting to go before 2.
+    pub fn prev(&mut self) -> Option<u128> {
+        if self.base < 2 {
+            return None;
+        }
+        let current = self.base;
+        // Reverse step: If we are at the beginning of the recurring cycle
+        // (index 5), wrap backwards to the end of the previous cycle.
+        if self.index == 5 && self.base > 11 {
+            self.index = 53;
+        }
+        if self.index > 0 {
+            self.index -= 1;
+            let gap = Self::GAPS[self.index];
+            self.base = self.base.saturating_sub(gap);
+        } else {
+            self.base = 0;
+        }
+        Some(current)
+    }
+}
+
 /// Fast prime candidate filter using the 210-spoke wheel bitmap.
 /// Returns false for any number divisible by 2, 3, 5, or 7,
 /// eliminating ~77% of all composites with a single modulo + bit-test.

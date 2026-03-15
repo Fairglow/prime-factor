@@ -10,22 +10,25 @@ alias t := tests
 all: build test release
 
 bench:
-    cargo bench
+    unbuffer cargo bench | tee bench.log
 
-build:
-    cargo build --all-targets && cargo clippy
+build: lint
+    unbuffer cargo build --all-targets | tee build.log
+
+lint:
+    unbuffer cargo clippy | tee lint.log
 
 outdated:
     cargo outdated --depth=1
 
 reikna:
-    cargo bench --bench bench-reikna --features bench-reikna
+    unbuffer cargo bench --bench bench-reikna --features bench-reikna | tee compare.log
 
 release:
     cargo build --release
 
 test:
-    cargo nextest run --test-threads num-cpus
+    unbuffer cargo nextest run --test-threads num-cpus | tee test.log
 
 test-out:
     cargo nextest run --no-capture --test-threads num-cpus

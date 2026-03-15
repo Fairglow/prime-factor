@@ -186,3 +186,103 @@ fn test_large_primes_above_mr_threshold() {
     assert!(u128_is_prime(162259276829213363391578010288127));       // 2^107 - 1
     assert!(u128_is_prime(170141183460469231731687303715884105727)); // 2^127 - 1
 }
+
+#[test]
+fn test_prev_prime() {
+    assert_eq!(primefactor::prev_prime(2), Some(2));
+    assert_eq!(primefactor::prev_prime(3), Some(3));
+    assert_eq!(primefactor::prev_prime(10), Some(7));
+    assert_eq!(primefactor::prev_prime(11), Some(11));
+    assert_eq!(primefactor::prev_prime(12), Some(11));
+    assert_eq!(primefactor::prev_prime(20), Some(19));
+    assert_eq!(primefactor::prev_prime(210), Some(199)); // largest prime <= 210 is 199
+    assert_eq!(primefactor::prev_prime(211), Some(211));
+    assert_eq!(primefactor::prev_prime(212), Some(211));
+    assert_eq!(primefactor::prev_prime(1), None);
+}
+
+#[test]
+fn test_next_prime() {
+    assert_eq!(primefactor::next_prime(0), 2);
+    assert_eq!(primefactor::next_prime(1), 2);
+    assert_eq!(primefactor::next_prime(2), 2);
+    assert_eq!(primefactor::next_prime(3), 3);
+    assert_eq!(primefactor::next_prime(10), 11);
+    assert_eq!(primefactor::next_prime(11), 11);
+    assert_eq!(primefactor::next_prime(12), 13);
+    assert_eq!(primefactor::next_prime(20), 23);
+    assert_eq!(primefactor::next_prime(210), 211);
+    assert_eq!(primefactor::next_prime(211), 211);
+    assert_eq!(primefactor::next_prime(212), 223);
+}
+
+#[test]
+fn test_prime_numbers_iterator_rev() {
+    let max_prime = reikna::prime::nth_prime(10000) as u128;
+    let mut iter = primefactor::DescendingPrimes::from(max_prime);
+    for i in (0..=10000).rev() {
+        let expected = reikna::prime::nth_prime(i) as u128;
+        let got = iter.next().unwrap();
+        assert_eq!(got, expected, "prime #{i} (rev): expected {expected}, got {got}");
+    }
+    assert_eq!(iter.next(), None);
+}
+
+#[test]
+fn test_primefactors_methods() {
+    let pf = primefactor::PrimeFactors::factorize(120);
+    assert_eq!(pf.value(), 120);
+    assert_eq!(pf.len(), 3); 
+    assert_eq!(pf.count_factors(), 5); 
+    assert!(!pf.is_empty());
+    assert!(!pf.is_prime());
+
+    let vec = pf.to_vec();
+    assert_eq!(vec, vec![2, 2, 2, 3, 5]);
+
+    let f = pf.factors();
+    assert_eq!(f.len(), 3);
+    assert_eq!(f[0].integer, 2);
+    assert_eq!(f[0].exponent, 3);
+    assert_eq!(f[1].integer, 3);
+    assert_eq!(f[1].exponent, 1);
+    assert_eq!(f[2].integer, 5);
+    assert_eq!(f[2].exponent, 1);
+    assert_eq!(pf.to_string(), "2^3 * 3 * 5");
+
+    let empty_pf = primefactor::PrimeFactors::factorize(1);
+    assert!(empty_pf.is_empty());
+    assert_eq!(empty_pf.len(), 0);
+    assert_eq!(empty_pf.count_factors(), 0);
+    assert_eq!(empty_pf.value(), 1);
+    assert_eq!(empty_pf.to_vec(), vec![]);
+    assert_eq!(empty_pf.to_string(), "");
+
+    let prime_pf = primefactor::PrimeFactors::factorize(13);
+    assert!(prime_pf.is_prime());
+    assert_eq!(prime_pf.len(), 1);
+    assert_eq!(prime_pf.count_factors(), 1);
+    assert_eq!(prime_pf.value(), 13);
+    assert_eq!(prime_pf.to_string(), "13");
+}
+
+#[test]
+fn test_intfactor_methods() {
+    let f = primefactor::IntFactor { integer: 7, exponent: 3 };
+    assert_eq!(f.to_vec(), vec![7, 7, 7]);
+    assert_eq!(f.to_string(), "7^3");
+    let f2 = primefactor::IntFactor { integer: 11, exponent: 1 };
+    assert_eq!(f2.to_vec(), vec![11]);
+    assert_eq!(f2.to_string(), "11");
+}
+
+#[test]
+fn test_primewheel30() {
+    let mut wheel = primefactor::candidates::PrimeWheel30::new();
+    let expected = vec![
+        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 49, 53, 59, 61, 67, 71
+    ];
+    for exp in expected {
+        assert_eq!(wheel.next().unwrap(), exp);
+    }
+}

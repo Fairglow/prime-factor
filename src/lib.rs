@@ -135,23 +135,28 @@ impl PrimeFactors {
     /// Compute the prime factorization of n using wheel factorization.
     #[must_use]
     pub fn factorize(n: u128) -> Self {
+        // If the number is large, we enable the Miller-Rabin fast paths
+        if n > MR_TRIAL_DIVISION_CROSSOVER {
+            Self::factorize_large(n)
+        } else {
+            // Hot path for small numbers: 100% pure trial division, no MR overhead
+            Self::factorize_small(n)
+        }
+    }
+    #[inline]
+    fn factorize_large(n: u128) -> Self {
         let mut pf = PrimeFactors::new();
         if n < 2 { return pf; }
+        let mut maxsq = n;
+        let mut x = n;
         // --- 1. EARLY EXIT FOR PRIMES ---
-        // If the number itself is prime, we don't need to do any trial division.
-        // This drops the absolute worst-case scenario from hours down to nanoseconds!
-        // We only use MR if n > 10 million where it beats standard division latency.
-        if n > MR_TRIAL_DIVISION_CROSSOVER && u128_is_prime(n) {
+        if u128_is_prime(n) {
             pf.add(n, 1);
             return pf;
         }
-        let mut maxsq = n;
-        let mut x = n;
         let pw_iter = PrimeWheel::new();
         for f in pw_iter {
-            if f * f > maxsq {
-                break;
-            }
+            if f * f > maxsq { break; }
             let mut c = 0;
             while x.is_multiple_of(f) {
                 x /= f;
@@ -160,18 +165,39 @@ impl PrimeFactors {
             if c > 0 {
                 maxsq = x;
                 pf.add(f, c);
-                // --- 2. EARLY EXIT FOR INTERMEDIATE PRIMES ---
-                // If we stripped out some factors and the remaining chunk 'x'
-                // is proven prime by Miller-Rabin, we are fully done.
+                // --- 2. EARLY EXIT FOR INTERMEDIATE CHUNKS ---
                 if x > MR_TRIAL_DIVISION_CROSSOVER && u128_is_prime(x) {
                     pf.add(x, 1);
                     x = 1;
                     break;
                 }
             }
-            if x == 1 {
-                break;
+            if x == 1 { break; }
+        }
+        if x > 1 {
+            pf.add(x, 1);
+        }
+        pf
+    }
+    #[inline]
+    fn factorize_small(n: u128) -> Self {
+        let mut pf = PrimeFactors::new();
+        if n < 2 { return pf; }
+        let mut maxsq = n;
+        let mut x = n;
+        let pw_iter = PrimeWheel::new();
+        for f in pw_iter {
+            if f * f > maxsq { break; }
+            let mut c = 0;
+            while x.is_multiple_of(f) {
+                x /= f;
+                c += 1;
             }
+            if c > 0 {
+                maxsq = x;
+                pf.add(f, c);
+            }
+            if x == 1 { break; }
         }
         if x > 1 {
             pf.add(x, 1);
@@ -182,10 +208,13 @@ impl PrimeFactors {
 
 impl fmt::Display for PrimeFactors {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let parts: Vec<_> = self.factors.iter()
-            .map(|f| f.to_string())
-            .collect();
-        write!(f, "{}", parts.join(" * "))
+        for (i, factor) in self.factors.iter().enumerate() {
+            if i > 0 {
+                f.write_str(" * ")?;
+            }
+            write!(f, "{factor}")?;
+        }
+        Ok(())
     }
 }
 
@@ -243,6 +272,35 @@ impl Iterator for PrimeNumbers {
     }
 }
 
+/// An iterator that yields prime numbers in descending order.
+/// Uses wheel factorization to traverse candidates backwards, filtering
+/// with Miller-Rabin (when available) for fast primality testing.
+#[derive(Clone, Debug)]
+pub struct DescendingPrimes {
+    wheel: PrimeWheel,
+}
+
+impl DescendingPrimes {
+    /// Create an iterator that yields primes `<= start`.
+    #[must_use]
+    pub fn from(start: u128) -> Self {
+        Self { wheel: PrimeWheel::from(start.saturating_add(1)) }
+    }
+}
+
+impl Iterator for DescendingPrimes {
+    type Item = u128;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let candidate = self.wheel.prev()?;
+            if u128_is_prime(candidate) {
+                return Some(candidate);
+            }
+        }
+    }
+}
+
 /// Test if the value is a prime number.
 ///
 /// Uses deterministic Miller-Rabin for numbers below `MR_DETERMINISTIC_LIMIT`
@@ -255,7 +313,6 @@ impl Iterator for PrimeNumbers {
 #[must_use]
 pub fn u128_is_prime(n: u128) -> bool {
     if !is_prime_candidate(n) { return false; }
-
     // Trial division by subsequent small primes. Even though the wheel
     // filters out multiples of 2, 3, 5, and 7, remaining composites are
     // heavily stripped out by small integer division before hitting the 
@@ -265,9 +322,8 @@ pub fn u128_is_prime(n: u128) -> bool {
     ];
     for &p in SMALL_PRIMES {
         if n == p { return true; }
-        if n % p == 0 { return false; }
+        if n.is_multiple_of(p) { return false; }
     }
-
     if n < MR_DETERMINISTIC_LIMIT {
         return miller_rabin(n);
     }
@@ -284,6 +340,17 @@ pub fn u128_is_prime(n: u128) -> bool {
 #[must_use]
 pub fn next_prime(n: u128) -> u128 {
     PrimeNumbers::from(n).next().unwrap()
+}
+
+/// Return the largest prime <= n.
+///
+/// Uses the [`DescendingPrimes`] iterator starting from `n` and moving backwards.
+#[must_use]
+pub fn prev_prime(n: u128) -> Option<u128> {
+    if n < 2 {
+        return None;
+    }
+    DescendingPrimes::from(n).next()
 }
 
 /// Calculate the Greatest common divisor (GCD) between 2 unsigned integers,

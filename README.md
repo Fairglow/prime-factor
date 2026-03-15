@@ -24,28 +24,36 @@ We want this iterator to be fast and give reasonably good guesses for prime numb
 
 ## Factorization performance
 
-Worst-case numbers (primes) on a modern system (i7-12700) with a 210-spoke Prime Wheel:
+Worst-case numbers (primes) on a modern system with a 210-spoke Prime Wheel and Miller-Rabin early exit:
 
 | Bitsize | Average Time |  Fastest |  Slowest |
 |--------:|-------------:|---------:|---------:|
-|       2 |       5.6 ns |   5.6 ns |   5.7 ns |
-|       4 |      10.1 ns |  10.0 ns |  10.1 ns |
-|       8 |      19.5 ns |  19.4 ns |  19.6 ns |
-|      12 |      47.1 ns |  46.9 ns |  47.4 ns |
-|      16 |     150.1 ns | 149.4 ns | 150.7 ns |
-|      20 |     557.3 ns | 554.6 ns | 560.6 ns |
-|      24 |      2.20 us |  2.20 us |  2.20 us |
-|      28 |      8.60 us |  8.60 us |  8.70 us |
-|      32 |      34.8 us |  34.7 us |  35.0 us |
-|      36 |     136.4 us | 135.9 us | 137.0 us |
-|      40 |     555.4 us | 553.7 us | 557.3 us |
-|      44 |      2.21 ms |  2.20 ms |  2.22 ms |
-|      48 |      8.90 ms |  8.88 ms |  8.92 ms |
-|      52 |     35.21 ms | 35.05 ms | 35.41 ms |
-|      56 |     140.4 ms | 139.9 ms | 141.0 ms |
-|      60 |     559.0 ms | 557.9 ms | 560.2 ms |
-|      64 |      2.24 s  |  2.23 s  |  2.25 s  |
-|      68 |      8.94 s  |  8.93 s  |  8.95 s  |
+|       2 |       5.4 ns |   5.3 ns |   5.4 ns |
+|       4 |       9.8 ns |   9.8 ns |   9.9 ns |
+|       8 |      18.9 ns |  18.8 ns |  19.0 ns |
+|      12 |      46.0 ns |  46.0 ns |  46.0 ns |
+|      16 |     145.4 ns | 145.2 ns | 145.8 ns |
+|      20 |     548.0 ns | 548.0 ns | 548.3 ns |
+|      24 |      1.85 us |  1.84 us |  1.86 us |
+|      28 |      2.20 us |  2.20 us |  2.20 us |
+|      32 |      2.72 us |  2.70 us |  2.74 us |
+|      36 |      3.05 us |  3.05 us |  3.06 us |
+|      40 |      3.21 us |  3.20 us |  3.22 us |
+|      44 |      3.72 us |  3.71 us |  3.72 us |
+|      48 |      3.76 us |  3.74 us |  3.78 us |
+|      52 |      4.16 us |  4.14 us |  4.18 us |
+|      56 |      4.53 us |  4.50 us |  4.56 us |
+|      60 |      4.76 us |  4.73 us |  4.80 us |
+|      64 |      5.11 us |  5.08 us |  5.13 us |
+|      68 |     307.5 us | 305.3 us | 310.8 us |
+|      70 |     344.5 us | 343.2 us | 345.8 us |
+|      72 |     371.3 us | 371.0 us | 371.6 us |
+|      74 |     387.2 us | 386.0 us | 388.8 us |
+|      76 |     405.2 us | 403.9 us | 406.1 us |
+|      78 |     441.7 us | 440.6 us | 442.7 us |
+|      80 |     470.4 us | 468.9 us | 471.1 us |
+
+For inputs up to 24 bits, pure trial division is used (below the Miller-Rabin crossover threshold). Above 24 bits, the deterministic Miller-Rabin test resolves primes in single-digit microseconds using native `u128` arithmetic. Above 64 bits, modular arithmetic requires a multi-precision fallback, increasing MR cost to hundreds of microseconds. The jump at 64→68 bits corresponds to this transition.
 
 The above numbers are taken from the included benchmark test, which you can run with the command: `cargo bench`. Note that it will take a few minutes to run the full suite, and in the meantime you should keep all other applications closed and leave the computer unattended, to give the benchmark the most processing power possible.
 
@@ -53,15 +61,15 @@ All in all, it takes about 5 minutes to run the full benchmark suite.
 
 ## Limitations & Practical Performance
 
-While the library can parse and accept up to 128-bit unsigned integers, it currently uses **Trial Division** heavily optimized with a prime wheel. Trial Division operates in $O(\sqrt{N})$ time, meaning performance will vary wildly depending on the size of the *factors*, not just the size of the number.
+While the library can parse and accept up to 128-bit unsigned integers, it uses a hybrid approach: **deterministic Miller-Rabin** primality testing (proven correct for all numbers below ~3.3 × 10²⁴, approximately 82 bits) for quick prime detection, combined with **Trial Division** heavily optimized with a 210-spoke prime wheel for factoring composites.
 
-If a large 128-bit number has small prime factors, it returns results instantly. However, for "worst-case scenario" numbers (semiprimes made of two similarly sized primes), the practical performance cut-offs look roughly like this:
+**For primes**, Miller-Rabin gives an answer in microseconds for any value up to 64 bits, and hundreds of microseconds up to 80 bits (see the table above). Above the deterministic limit (~82 bits), a trial-division fallback verifies MR candidates, which can be slow for very large primes.
 
-* **Good (< 1 second): Up to ~62 bits.**
-  Numbers this size or smaller are crunched virtually instantly. Great for normal use cases.
-* **Acceptable (Seconds to Minutes): 63-75 bits.**
-  You can expect a 68-bit worst-case integer to factorize in about 9 seconds. A 75-bit worst-case integer can take an hour. It is perfectly fine for background batch processing.
-* **Not Practical (Hours, Days, or longer): > 75 bits.**
-  If you attempt to factor a worst-case 100-bit or 128-bit number (like cryptographic keys) with this version of the library, the application will appear to hang. True 128-bit worst-case factorization would take centuries to compute with Trial Division!
+**For composites**, performance depends on the size of the *smallest prime factor*, not just the size of the number. Numbers with small factors decompose nearly instantly. The hard case is semiprimes (products of two large, similarly-sized primes), where trial division in $O(\sqrt{p})$ is needed to find the smaller factor $p$. Practical performance cut-offs for these worst-case composites:
 
-> *Note: Future optimizations may incorporate sub-exponential algorithms like **Pollard's rho** which could significantly improve these upper bounds.*
+* **Instant (< 1 ms):** Semiprimes with factors up to ~32 bits.
+* **Good (< 1 second):** Semiprimes with the smallest factor up to ~40 bits.
+* **Acceptable (seconds to minutes):** Smallest factor in the 40–44 bit range.
+* **Not practical (hours+):** Smallest factor above ~48 bits. A semiprime composed of two 64-bit primes would take centuries to factorize with trial division.
+
+> *Note: Future optimizations may incorporate sub-exponential algorithms like **Pollard's rho** which could significantly improve factorization of large semiprimes.*

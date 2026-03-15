@@ -1,10 +1,11 @@
 [package]
 name = "prime-factor"
 description = "A prime number factorizer written in Rust"
-version = "0.6.3"
+version = "0.7.0"
 authors = ["Stefan Lindblad <stefan.lindblad@linux.com>"]
 license = "LGPL-2.1-or-later"
 edition = "2024"
+homepage = "https://github.com/Fairglow/prime-factor"
 repository = "https://github.com/Fairglow/prime-factor.git"
 readme = "README.md"
 
